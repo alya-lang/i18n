@@ -1,0 +1,130 @@
+## # i18n/plural
+##
+## CLDR-lite plural rules: category selection and form ordering per language.
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
+##
+## Unsupported families fall back to the simple one/other rule.
+
+## Returns 1 when s equals an entry of list, else 0.
+function lang_in_list(s: string, list) -> int
+    for x in list
+        if x == s
+            return 1
+        end
+    end
+    return 0
+end
+
+## Returns the base language of a tag ("pt-BR" -> "pt", "en" -> "en").
+pub function base_lang(tag: string) -> string
+    if tag is null or len(tag) == 0
+        return ""
+    end
+    let d = index_of(tag, "-")
+    if d < 0
+        d = index_of(tag, "_")
+    end
+    if d > 0
+        return tag[..d]
+    end
+    return tag
+end
+
+## Returns the CLDR-lite plural category for n in the given language.
+##
+## ### Parameters
+## - `lang`: Language id (`"en"`, `"ru"`, `"ar"`).
+## - `n`: Item count (negative counts map to `"other"`).
+##
+## ### Returns
+## One of `"zero"`, `"one"`, `"two"`, `"few"`, `"many"`, `"other"`.
+pub function plural_category(lang: string, n: int) -> string
+    if n < 0
+        return "other"
+    end
+    let base = base_lang(lang)
+    if lang_in_list(base, ["ru", "uk", "be", "hr", "sr", "bs"]) == 1
+        let r10 = n - (n / 10) * 10
+        let r100 = n - (n / 100) * 100
+        if r10 == 1 and r100 != 11
+            return "one"
+        end
+        if r10 >= 2 and r10 <= 4 and (r100 < 12 or r100 > 14)
+            return "few"
+        end
+        return "many"
+    end
+    if base == "pl"
+        let r10 = n - (n / 10) * 10
+        let r100 = n - (n / 100) * 100
+        if n == 1
+            return "one"
+        end
+        if r10 >= 2 and r10 <= 4 and (r100 < 12 or r100 > 14)
+            return "few"
+        end
+        return "many"
+    end
+    if base == "cs" or base == "sk"
+        if n == 1
+            return "one"
+        end
+        if n >= 2 and n <= 4
+            return "few"
+        end
+        return "other"
+    end
+    if base == "ar"
+        if n == 0
+            return "zero"
+        end
+        if n == 1
+            return "one"
+        end
+        if n == 2
+            return "two"
+        end
+        let r100 = n - (n / 100) * 100
+        if r100 >= 3 and r100 <= 10
+            return "few"
+        end
+        if r100 >= 11 and r100 <= 99
+            return "many"
+        end
+        return "other"
+    end
+    if lang_in_list(base, ["fr", "ak", "am", "ln", "mg", "wa"]) == 1
+        if n == 0 or n == 1
+            return "one"
+        end
+        return "other"
+    end
+    if lang_in_list(base, ["ja", "zh", "yue", "ko", "th", "vi", "id", "ms", "tr", "az", "lo", "km", "my"]) == 1
+        return "other"
+    end
+    if n == 1
+        return "one"
+    end
+    return "other"
+end
+
+## Returns the ordered plural-form keys for pipe-separated `.tr` values.
+##
+## ### Parameters
+## - `lang`: Language id.
+##
+## ### Returns
+## Form key array (e.g. `["one", "few", "many"]` for Russian).
+pub function form_order(lang: string) -> array
+    let base = base_lang(lang)
+    if lang_in_list(base, ["ru", "uk", "be", "hr", "sr", "bs", "pl"]) == 1
+        return ["one", "few", "many"]
+    end
+    if base == "cs" or base == "sk"
+        return ["one", "few", "other"]
+    end
+    if base == "ar"
+        return ["zero", "one", "two", "few", "many", "other"]
+    end
+    return ["one", "other"]
+end

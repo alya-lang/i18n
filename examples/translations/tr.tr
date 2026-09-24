@@ -1,0 +1,9 @@
+msg_hello
+Merhaba
+-----
+items
+{count} öğe
+-----
+welcome
+Hoş geldin, {name}!
+-----

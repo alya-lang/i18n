@@ -1,0 +1,9 @@
+msg_hello
+Hello
+-----
+items
+one item|{count} items
+-----
+welcome
+Welcome, {name}!
+-----

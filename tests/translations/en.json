@@ -1,0 +1,7 @@
+{
+  "msg_hello": "Hello-JSON-SHOULD-LOSE",
+  "menu.file": "File",
+  "menu.edit.undo": "Undo",
+  "cart": "one article|{count} articles",
+  "farewell": "Goodbye, {name}!"
+}

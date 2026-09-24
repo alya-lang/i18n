@@ -1,0 +1,17 @@
+## # i18n/detect
+##
+## System language detection via the sysinfo package.
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
+
+import "sysinfo" as sysinfo_pkg
+
+## Returns the best system locale tag, falling back to default_lang.
+##
+## ### Parameters
+## - `default_lang`: Fallback tag when detection yields nothing. Defaults to `"en"`.
+##
+## ### Returns
+## Locale tag such as `"tr-TR"` or `"en"`.
+pub function detect_lang(default_lang: string = "en") -> string
+    return sysinfo_pkg::system_lang(default_lang)
+end

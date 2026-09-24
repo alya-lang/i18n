@@ -1,0 +1,13 @@
+msg_hello
+Hello
+-----
+goods
+one item|{count} items
+-----
+welcome_user
+Welcome, {name}!
+-----
+multiline
+line one
+line two
+-----

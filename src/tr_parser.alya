@@ -1,0 +1,69 @@
+## # i18n/tr_parser
+##
+## gettext-style `.tr` translation file parser.
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
+##
+## Format: key line, value lines, `-----` separator:
+## ```text
+## msg_hello
+## Hello
+## -----
+## goods
+## one item|{count} items
+## -----
+## ```
+
+import "std/str"
+
+## Strips trailing newline characters from a parsed value.
+function rstrip_newlines(s: string) -> string
+    let out = s
+    while len(out) > 0 and ends_with(out, "\n")
+        out = out[..(len(out) - 1)]
+    end
+    return out
+end
+
+## Parses `.tr` text into a key -> value map.
+##
+## ### Parameters
+## - `text`: Raw `.tr` file content.
+##
+## ### Returns
+## Flat map of translation keys to template strings.
+pub function parse_tr_text(text) -> map
+    let out = map()
+    if text is null or len(text) == 0
+        return out
+    end
+    let norm = replace(text, "\r\n", "\n")
+    let lines = split(norm, "\n")
+    let key = ""
+    let buf = ""
+    let has_key = 0
+    for line in lines
+        if line == "-----"
+            if has_key == 1 and len(key) > 0
+                out[key] = rstrip_newlines(buf)
+            end
+            key = ""
+            buf = ""
+            has_key = 0
+            continue
+        end
+        if has_key == 0
+            let k = trim(line)
+            if len(k) == 0
+                continue
+            end
+            key = k
+            has_key = 1
+        else
+            buf = buf + line + "\n"
+        end
+    end
+    if has_key == 1 and len(key) > 0
+        out[key] = rstrip_newlines(buf)
+    end
+    return out
+end

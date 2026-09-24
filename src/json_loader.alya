@@ -1,0 +1,40 @@
+## # i18n/json_loader
+##
+## Flat JSON translation loader (string values only).
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
+##
+## Translation JSON is a flat object of string values; dotted keys stay
+## literal (`"menu.file"`). Nested objects, arrays, and non-string scalars
+## are outside the v0.1.0 contract: variable-key reads of heap values come
+## back unboxed, so only top-level string values can be pinned safely.
+
+import "std/str"
+import "json" as json_pkg
+
+## Parses flat JSON translation text into a key -> template map.
+##
+## Only JSON objects of string values are consumed (translation files are
+## flat key/value documents; anything else yields an empty table).
+##
+## ### Parameters
+## - `text`: Raw JSON translation content.
+##
+## ### Returns
+## Flat map of translation keys to template strings.
+pub function parse_json_text(text) -> map
+    let out = map()
+    if text is null or len(text) == 0
+        return out
+    end
+    if starts_with(trim(text), "{") == 0
+        return out
+    end
+    let data = json_pkg::parse(text)
+    if data is null
+        return out
+    end
+    for k in keys(data)
+        out[k] = str_from_ptr(data[k])
+    end
+    return out
+end

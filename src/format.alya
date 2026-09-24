@@ -1,0 +1,33 @@
+## # i18n/format
+##
+## `{placeholder}` interpolation for translations.
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
+##
+## Placeholder values arrive through variable-key reads, which yield unboxed
+## pointers for heap values — every value is pinned with `str_from_ptr`.
+## By contract, vars values are strings (inject counts as `str(n)`).
+
+import "std/str"
+
+## Replaces `{key}` placeholders in a template using a vars map.
+##
+## ### Parameters
+## - `template`: Translation template string.
+## - `vars`: Placeholder name -> string value map (or null).
+##
+## ### Returns
+## Interpolated string.
+pub function interpolate(template: string, vars) -> string
+    if vars is null
+        return template
+    end
+    let ks = keys(vars)
+    let interp_res = template
+    let i = 0
+    while i < len(ks)
+        let k = ks[i]
+        interp_res = replace(interp_res, "{" + k + "}", str_from_ptr(vars[k]))
+        i += 1
+    end
+    return interp_res
+end

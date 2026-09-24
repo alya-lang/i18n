@@ -1,0 +1,119 @@
+## # i18n/loader
+##
+## Translation directory loader: `.tr` + `.json` with `.tr` precedence.
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
+##
+## Layout: `dir/<lang>.tr` and `dir/<lang>.json` define the `<lang>` table.
+## Files inside a language subdirectory are namespaced (`dir/de/app.json`
+## defines `de` keys under `app.`). Only one subdirectory level is used.
+## Output is a flat `"lang\nkey"` -> template map (see types.alya).
+
+import "std/fs"
+import "std/str"
+import "./tr_parser.alya"
+import "./json_loader.alya"
+
+## Returns the language id from a file name ("en.tr" -> "en").
+function file_lang(name: string) -> string
+    let dot = last_index_of(name, ".")
+    if dot <= 0
+        return ""
+    end
+    return name[..dot]
+end
+
+## Merges one translation file into the aggregate flat table.
+function merge_file(all, path: string, lang: string, ns: string, ext: string)
+    let flat = map()
+    if ext == ".tr"
+        flat = parse_tr_text(fs_read(path))
+    else
+        flat = parse_json_text(fs_read(path))
+    end
+    for k in keys(flat)
+        let fk = k
+        if len(ns) > 0
+            fk = ns + "." + k
+        end
+        all[lang + "\n" + fk] = str_from_ptr(flat[k])
+    end
+end
+
+## Loads one extension pass over a directory level.
+function load_pass(all, dir: string, ns: string, ext: string)
+    let entries = fs_list_dir(dir)
+    for e in entries
+        let full = dir + "/" + e
+        if fs_is_dir(full) == 1
+            if len(ns) == 0
+                load_subdir(all, full, e, ext)
+            end
+        else
+            if ext == ".tr"
+                if ends_with(e, ".tr") == 1 or ends_with(e, ".TR") == 1
+                    load_top_file(all, full, e, ns, ext)
+                end
+            end
+            if ext == ".json"
+                if ends_with(e, ".json") == 1 or ends_with(e, ".JSON") == 1
+                    load_top_file(all, full, e, ns, ext)
+                end
+            end
+        end
+    end
+end
+
+## Loads a single top-level translation file.
+function load_top_file(all, full: string, name: string, ns: string, ext: string)
+    let lang = file_lang(name)
+    if len(lang) == 0
+        return
+    end
+    merge_file(all, full, lang, ns, ext)
+end
+
+## Loads namespaced files from a language subdirectory.
+function load_subdir(all, dir: string, lang: string, ext: string)
+    let entries = fs_list_dir(dir)
+    for e in entries
+        let full = dir + "/" + e
+        if fs_is_dir(full) == 1
+            continue
+        end
+        let want = 0
+        if ext == ".tr"
+            if ends_with(e, ".tr") == 1 or ends_with(e, ".TR") == 1
+                want = 1
+            end
+        end
+        if ext == ".json"
+            if ends_with(e, ".json") == 1 or ends_with(e, ".JSON") == 1
+                want = 1
+            end
+        end
+        if want == 0
+            continue
+        end
+        let ns = file_lang(e)
+        if len(ns) == 0
+            continue
+        end
+        merge_file(all, full, lang, ns, ext)
+    end
+end
+
+## Loads a translation directory into a flat message table.
+##
+## `.tr` entries win over `.json` entries for the same key.
+##
+## ### Parameters
+## - `dir`: Directory containing `<lang>.tr` / `<lang>.json` files.
+##
+## ### Returns
+## Flat `"lang\nkey"` -> template map.
+pub function load_dir(dir: string) -> map
+    let all = map()
+    load_pass(all, dir, "", ".json")
+    load_pass(all, dir, "", ".tr")
+    return all
+end

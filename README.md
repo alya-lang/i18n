@@ -11,14 +11,14 @@ Lightweight internationalization: locale bundles, gettext-style .tr and JSON loa
 
 ## 🌟 Features
 
-- ⚡ **Lightweight & High Performance**: Minimal memory overhead, zero runtime bloat, and fast native execution
-- 🧩 **Modular Architecture**: Layered multi-module design featuring a clean public facade (`src/lib.alya`), rich data models (`src/types.alya`), and encapsulated core formatters (`src/core/formatter.alya`)
-- 🔒 **Public/Private Visibility (`pub`)**: Fine-grained export control with `pub` for public functions, structs, and enums, keeping internal helper functions private and encapsulated
-- 🎭 **Structural Duck Typing & Interfaces**: Dynamic interface dispatch (`Summarizable`, `Describable`) without brittle inheritance hierarchies
-- 📦 **Rich Domain Models & Enums**: Idiomatic `enum` types (`İ18nStatus`, `İ18nPriority`, `İ18nStyle`) and typed data containers (`İ18nConfig`, `İ18nResult`, `İ18nStats`)
-- 🎯 **Advanced Pattern Matching**: Clean branching with `when` expressions, range matching, and condition guards
-- 🛡️ **Defensive Result Pattern**: Structured error handling and outcome encapsulation with `ok_result` and `error_result`
-- 🧪 **Enterprise Test & Benchmark Suite**: 100% test coverage with standard assertions (`std/test`) and micro-benchmarking (`std/test` bench runner)
+- 🌍 **Locale Bundles**: `I18nBundle` tables with active language, fallback chain (lang → base → fallback), and explicit-language lookup
+- 📄 **gettext-style `.tr` Loader**: Key/value entries with `-----` separators, multiline values, CRLF-safe
+- 🗂️ **Flat JSON Loader**: String translation files with literal dotted keys, language subdirectories as namespaces (`de/app.json` → `app.*`), `.tr` wins on conflicts
+- 🔢 **CLDR-lite Plurals**: Correct one/few/many/other/zero/two rules for Germanic, Slavic, French, Arabic, Polish, Czech/Slovak, and Asian (no-plural) families
+- 🔄 **Pipe Templates**: Positional plural forms (`"one|other"`, `"one|few|many"`) selected by language form order
+- 🧩 **`{placeholder}` Interpolation**: String vars maps with automatic `{count}` injection for plurals
+- 🖥️ **System Language Detection**: Native locale via the `sysinfo` package with `"en"` fallback
+- 🧪 **Test & Benchmark Suite**: 65 assertions (`std/test`) and micro-benchmarks
 
 ---
 
@@ -30,18 +30,22 @@ i18n/
 ├── .editorconfig           # Uniform formatting rules across IDEs and editors
 ├── .gitignore              # Ecosystem standard ignore filters
 ├── .vscode/                # VS Code workspace settings, DAP launch configurations & tasks
-├── alya.toml               # Package manifest with dependencies and optional [build]
-├── c/                      # (Optional) Native C sources for zero-dependency FFI packages
+├── alya.toml               # Package manifest (depends on `json`, `sysinfo`)
 ├── src/
-│   ├── lib.alya            # Public API facade (pub exports, re-exports & pipeline runners)
-│   ├── types.alya          # Data models, pub enums, pub structs, and struct methods
-│   ├── ffi.alya            # (Optional) Native extern "C" declarations
-│   └── core/               # Subdirectory module hierarchy
-│       └── formatter.alya  # Domain formatting routines, salutation builders & pattern matchers
+│   ├── lib.alya            # Public API facade (load_bundle, t, plural, tr_in)
+│   ├── types.alya          # I18nBundle model, constructors, set_lang/langs
+│   ├── tr_parser.alya      # .tr file parser
+│   ├── json_loader.alya    # Flat JSON loader
+│   ├── plural.alya         # CLDR-lite categories + pipe form orders
+│   ├── format.alya         # Placeholder interpolation
+│   ├── detect.alya         # System language detection (sysinfo)
+│   └── loader.alya         # Directory walker (.tr wins, subdir namespaces)
 ├── examples/
-│   └── demo.alya           # Comprehensive runnable walkthrough of all package capabilities
+│   ├── demo.alya           # Runnable walkthrough of all package capabilities
+│   └── translations/       # Demo translation files (en.tr, tr.tr)
 ├── tests/
-│   └── test_basic.alya     # Automated test suite with 100% feature coverage
+│   ├── test_basic.alya     # Automated test suite (65 assertions)
+│   └── translations/       # Fixture files (en/tr/de, .tr + .json)
 └── benches/
     └── bench_basic.alya    # Micro-benchmarks measuring performance and throughput
 ```
@@ -75,22 +79,30 @@ alya install
 import "i18n" as pkg
 
 function main()
-    # 1. Basic facade call with default parameter
-    let greeting = pkg::hello()
-    say f"Greeting:  {greeting}"
+    # 1. Inline bundle with plural templates
+    let enm = map()
+    enm["hello"] = "Hi"
+    enm["goods"] = """one item|{{count}} items"""
+    let b = pkg::bundle_new("en", "en")
+    let b = b.put_lang("en", enm)
+    say pkg::t(b, "hello")          # "Hi"
+    say pkg::plural(b, "goods", 5)  # "5 items"
 
-    # 2. Struct configuration with priority, style, and methods
-    let cfg = pkg::new_config("Community", 5, pkg::İ18nPriority.High, pkg::İ18nStyle.Formal)
-    say f"Summary:   {cfg.summary()}"
-    say f"Formatted: {pkg::core_format_custom(cfg)}"
-
-    # 3. Processing pipeline returning Result model
-    let res = pkg::process("Analytics", 3, pkg::İ18nPriority.Critical)
-    say f"Outcome:   {res.message}"
+    # 2. Load a translation directory (auto-detects system language)
+    let lb = pkg::load_bundle("translations", "", "en")
+    say pkg::t(lb, "msg_hello")
 end
 
 main()
 ```
+
+> [!NOTE]
+> **v0.1.0 contracts:** JSON translation files are flat objects of string
+> values (literal dotted keys stay literal); nested objects, arrays, and
+> non-string scalars are not consumed. Placeholder vars values must be
+> strings — inject counts as `str(n)`. These limits follow from native map
+> subscript semantics (variable-key reads of heap values need `str_from_ptr`
+> pinning); nested-JSON support is planned alongside compiler map improvements.
 
 ---
 
@@ -98,44 +110,30 @@ main()
 
 | Symbol | Visibility | Description |
 |---|---|---|
-| `hello(name = "World")` | `pub function` | Returns a formatted greeting string. Defaults to `"World"` if null or empty. |
-| `new_config(name, count, priority, style)` | `pub function` | Factory constructing a `İ18nConfig` with sensible defaults. |
-| `make_config(name, count, priority, style, enabled, tags)` | `pub function` | Full constructor for `İ18nConfig`. |
-| `process(label, count, priority)` | `pub function` | Runs processing pipeline, returning an `ok_result` `İ18nResult`. |
-| `process_batch(labels)` | `pub function` | Formats an array of labels in batch, returning an array of strings. |
-| `ok_result(value, message)` | `pub function` | Constructs a successful `İ18nResult` container (`status = 0`). |
-| `error_result(message, errors)` | `pub function` | Constructs a failed `İ18nResult` container (`status = 1`). |
-| `make_stats(total, passed, failed, skipped)` | `pub function` | Constructs a `İ18nStats` metrics record. |
-| `format_summary(cfg)` | `pub function` | Formats summary of a config instance (satisfies `Summarizable`). |
-| `format_description(cfg)` | `pub function` | Formats description of a config instance (satisfies `Describable`). |
-| `format_config(config)` | `pub function` | Multi-field formatter producing descriptive overview of a `İ18nConfig`. |
-| `format_result(result)` | `pub function` | Formats a `İ18nResult` into `[OK]` or `[ERROR]` status line. |
-| `format_stats(stats)` | `pub function` | Formats total checked items and success rate percentage. |
-| `clamp(n, min_val, max_val)` | `pub function` | Clamps an integer value to the closed range `[min_val, max_val]`. |
-| `pluralize(n, singular, plural)` | `pub function` | Pattern-matches count to return singular or plural noun form. |
-| `repeat_string(label, count)` | `pub function` | Repeats a string into an array of `count` items. |
-| `Summarizable` | `pub interface` | Structural contract requiring `summary(self) -> string`. |
-| `Describable` | `pub interface` | Structural contract requiring `describe(self) -> string` and `is_valid(self) -> int`. |
-| `İ18nStatus` | `pub enum` | Lifecycle status codes (`Pending = 0`, `Active = 1`, `Archived = 2`, `Error = 3`). |
-| `İ18nPriority` | `pub enum` | Priority tiers (`Low = 0`, `Normal = 1`, `High = 2`, `Critical = 3`). |
-| `İ18nStyle` | `pub enum` | Presentation styles (`Standard = 0`, `Formal = 1`, `Casual = 2`). |
-| `İ18nConfig` | `pub struct` | Primary configuration model (`name`, `count`, `priority`, `style`, `enabled`, `tags`). |
-| `İ18nConfig.summary()` | `pub method` | Single-line formatted summary (satisfies `Summarizable`). |
-| `İ18nConfig.describe()` | `pub method` | Detailed multi-field description (satisfies `Describable`). |
-| `İ18nConfig.is_valid()` | `pub method` | Validation guard returning 1 if valid, 0 otherwise. |
-| `İ18nConfig.is_enabled()` | `pub method` | Returns 1 if active, 0 if disabled. |
-| `İ18nConfig.with_name(new_name)` | `pub method` | Immutable copy with updated name. |
-| `İ18nConfig.with_priority(new_prio)` | `pub method` | Immutable copy with updated priority tier. |
-| `İ18nResult` | `pub struct` | Operation outcome model (`value`, `status`, `message`, `errors`). |
-| `İ18nResult.is_ok()` | `pub method` | Returns 1 if successful (`status == 0`), 0 otherwise. |
-| `İ18nResult.is_error()` | `pub method` | Returns 1 if error (`status != 0`), 0 otherwise. |
-| `İ18nResult.unwrap_or(fallback)` | `pub method` | Returns message on success, or fallback on error. |
-| `İ18nStats` | `pub struct` | Run statistics model (`total`, `passed`, `failed`, `skipped`). |
-| `İ18nStats.total_checked()` | `pub method` | Sum of passed and failed items count. |
-| `İ18nStats.success_rate()` | `pub method` | Computed percentage string (e.g. `"95%"`). |
+| `bundle_new(lang, fallback)` | `pub function` | Creates an empty `I18nBundle` (defaults `"en"`, `"en"`). Fill it with `put_lang`. |
+| `I18nBundle.put_lang(lang, langmap)` | `pub method` | Merges a flat key → template map under a language id. |
+| `I18nBundle.set_lang(lang)` | `pub method` | Returns bundle copy with updated active language. |
+| `I18nBundle.langs()` | `pub method` | Lists language ids present in the bundle. |
+| `load_bundle(dir, lang, fallback)` | `pub function` | Loads a translation directory; empty `lang` auto-detects the system language. |
+| `load_dir(dir)` | `pub function` | Loads `<lang>.tr` / `<lang>.json` (+ language subdirs) into a flat table (`.tr` wins). |
+| `parse_tr_text(text)` | `pub function` | Parses `.tr` text (key lines, `-----` separators, multiline values). |
+| `parse_json_text(text)` | `pub function` | Parses flat JSON string values (literal dotted keys stay literal). |
+| `t(bundle, key, vars)` | `pub function` | Translates with fallback chain; missing keys return the key itself. |
+| `plural(bundle, key, n, vars)` | `pub function` | Pipe-template plural with `{count}` injection. |
+| `tr_in(bundle, lang, key, vars)` | `pub function` | Translates in an explicit language. |
+| `plural_category(lang, n)` | `pub function` | CLDR-lite category (`zero/one/two/few/many/other`). |
+| `form_order(lang)` | `pub function` | Ordered form keys for pipe templates. |
+| `base_lang(tag)` | `pub function` | Base language (`"pt-BR"` → `"pt"`). |
+| `interpolate(template, vars)` | `pub function` | Replaces `{key}` placeholders from a string vars map. |
+| `detect_lang(default)` | `pub function` | System locale tag via `sysinfo` (`"en"` fallback). |
+| `system_language(default)` | `pub function` | Alias of `detect_lang`. |
+| `find_raw(bundle, lang, key)` | `pub function` | Raw template lookup (null when untranslated). |
+| `fallback_chain(bundle, lang)` | `pub function` | Deduplicated lookup chain. |
+| `vars_with_count(vars, n)` | `pub function` | Copies string vars and injects `{count}`. |
+| `I18nBundle` | `pub struct` | Bundle model (`messages`, `lang`, `fallback`). |
 
 > [!TIP]
-> **Internal Helpers & Documentation:** Public symbols are documented with `##` Markdown docstrings, enabling automatic API documentation generation via `alya doc`. Private functions such as `build_salutation` and `build_priority_label` in `src/core/formatter.alya` are not annotated with `pub` and remain encapsulated within their respective modules.
+> **Internal Helpers & Documentation:** Public symbols are documented with `##` Markdown docstrings, enabling automatic API documentation generation via `alya doc`. Module-local helpers remain encapsulated without `pub`.
 
 ---
 
