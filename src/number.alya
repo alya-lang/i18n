@@ -8,6 +8,7 @@
 ## scripts beyond table coverage stay on the follow-up list.
 
 import "std/time" as time
+import "std/str"
 import "./plural.alya"
 
 ## Decimal separator for a language id (`.` by default).
@@ -185,6 +186,32 @@ function pad2(n: int) -> string
     return str(n)
 end
 
+## Days per month for a common year (index 1-12 via month - 1).
+function month_lengths(leap: int) -> array
+    if leap == 1
+        return [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    end
+    return [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+end
+
+## Validates a proleptic Gregorian date (throws on impossible dates).
+function validate_ymd(year: int, month: int, day: int)
+    if year < 1
+        throw "format_date requires year >= 1"
+    end
+    if month < 1 or month > 12
+        throw "format_date requires month 1..12"
+    end
+    let leap = 0
+    if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+        leap = 1
+    end
+    let lengths = month_lengths(leap)
+    if day < 1 or day > lengths[month - 1]
+        throw "format_date day out of range for month"
+    end
+end
+
 ## Full month names per supported language (English delegates to stdlib).
 function months_full(lang: string) -> array
     let b = base_lang(lang)
@@ -279,14 +306,18 @@ end
 ## simplified `"{day} {month} {year}"` (particles dropped, documented).
 ##
 ## ### Parameters
-## - `year`: Full year (e.g. `2024`).
+## - `year`: Full year (e.g. `2024`, >= 1).
 ## - `month`: Month number 1-12.
-## - `day`: Day number 1-31.
+## - `day`: Day number valid for the month (leap-aware).
 ## - `lang`: Language id (defaults to `"en"`).
 ##
 ## ### Returns
 ## Named date string.
+##
+## ### Throws
+## Impossible dates.
 pub function format_date_named(year: int, month: int, day: int, lang: string = "en") -> string
+    validate_ymd(year, month, day)
     let name = month_name(lang, month)
     let b = base_lang(lang)
     if b == "en"
@@ -408,12 +439,16 @@ end
 ## ### Parameters
 ## - `year`: Full year (e.g. `2024`, >= 1).
 ## - `month`: Month number 1-12.
-## - `day`: Day number 1-31.
+## - `day`: Day number valid for the month (leap-aware).
 ## - `lang`: Language id (defaults to `"en"`).
 ##
 ## ### Returns
 ## Full named date string.
+##
+## ### Throws
+## Impossible dates.
 pub function format_date_full(year: int, month: int, day: int, lang: string = "en") -> string
+    validate_ymd(year, month, day)
     let wd = weekday_name(lang, weekday_of_ymd(year, month, day))
     let name = month_name(lang, month)
     let b = base_lang(lang)
@@ -596,7 +631,64 @@ pub function format_money(value: float, lang: string = "en", currency: string = 
     end
 end
 
-## Formats an ordinal number for a language id.
+## Joins string items with a locale conjunction ("a, b, and c").
+##
+## CJK joins with `、` and no final conjunction; Arabic uses `،` + `و`.
+## Items must be strings.
+##
+## ### Parameters
+## - `items`: String array (empty yields `""`).
+## - `lang`: Language id (defaults to `"en"`).
+##
+## ### Returns
+## Joined list string.
+pub function format_list(items: array, lang: string = "en") -> string
+    let n: int = len(items)
+    if n == 0
+        return ""
+    end
+    if n == 1
+        return items[0]
+    end
+    let b = base_lang(lang)
+    if b == "ja" or b == "zh" or b == "yue"
+        let out = items[0]
+        let i: int = 1
+        while i < n
+            out += "、" + items[i]
+            i += 1
+        end
+        return out
+    end
+    let sep = when b
+        is "ar" => "، "
+        else => ", "
+    end
+    let conj = when b
+        is "ar" => "و "
+        is "de" => "und "
+        is "fr" => "et "
+        is "es" => "y "
+        is "it", "pt" => "e "
+        is "tr" => "ve "
+        is "nl" => "en "
+        is "ru" => "и "
+        else => "and "
+    end
+    if n == 2
+        return items[0] + " " + trim(conj) + " " + items[1]
+    end
+    let head = items[0]
+    let i: int = 1
+    while i < n - 1
+        head += sep + items[i]
+        i += 1
+    end
+    if b == "en"
+        return head + sep + conj + items[n - 1]
+    end
+    return head + " " + conj + items[n - 1]
+end
 ##
 ## English applies the 11-13 exception (`11th`, not `11st`); French uses
 ## the masculine `1er` (no gender info available); German/Turkish use a
@@ -656,14 +748,18 @@ end
 ## Korean trailing-dot style simplifies to dots (`2024.12.31`).
 ##
 ## ### Parameters
-## - `year`: Full year (e.g. `2024`).
+## - `year`: Full year (e.g. `2024`, >= 1).
 ## - `month`: Month number 1-12.
-## - `day`: Day number 1-31.
+## - `day`: Day number valid for the month (leap-aware).
 ## - `lang`: Language id (defaults to `"en"`).
 ##
 ## ### Returns
 ## Locale-ordered date string.
+##
+## ### Throws
+## Impossible dates (month out of range, day out of range for month).
 pub function format_date_ymd(year: int, month: int, day: int, lang: string = "en") -> string
+    validate_ymd(year, month, day)
     let sep = date_separator(lang)
     let order = date_order(lang)
     if order == "MDY"

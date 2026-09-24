@@ -22,7 +22,7 @@ Lightweight internationalization: locale bundles, gettext-style .tr and JSON loa
 - 🔄 **Pipe Templates**: Positional plural forms (`"one|other"`, `"one|few|many"`) selected by language form order
 - 🧩 **`{placeholder}` Interpolation**: String vars maps with automatic `{count}` injection for plurals
 - 🖥️ **System Language Detection**: Native locale via the `sysinfo` package with `"en"` fallback
-- 🧪 **Test & Benchmark Suite**: 168 assertions (`std/test`) and micro-benchmarks
+- 🧪 **Test & Benchmark Suite**: 178 assertions (`std/test`) and micro-benchmarks
 - 🔍 **Coverage Introspection**: `has` / `missing_keys` translation auditing
 - 🔢 **Locale Numbers & Dates**: Per-family decimal/grouping separators, MDY/DMY/YMD numeric dates
 
@@ -54,7 +54,7 @@ i18n/
 │   ├── demo.alya           # Runnable walkthrough of all package capabilities
 │   └── translations/       # Demo translation files (en.tr, tr.tr)
 ├── tests/
-│   ├── test_basic.alya     # Automated test suite (168 assertions)
+│   ├── test_basic.alya     # Automated test suite (178 assertions)
 │   └── translations/       # Fixture files (en/tr/de, .tr + .json)
 └── benches/
     └── bench_basic.alya    # Micro-benchmarks measuring performance and throughput
@@ -157,6 +157,7 @@ main()
 | `relative_future(bundle, lang, n, unit)` | `pub function` | Localized "in" time from bundle templates. |
 | `format_money(value, lang, currency, decimals)` | `pub function` | Currency with locale separators and symbol position. |
 | `ordinal(n, lang)` | `pub function` | Ordinal number (`1st`, `1er`, `1.`). |
+| `format_list(items, lang)` | `pub function` | Locale conjunction join (`a, b, and c`). |
 | `weekday_name(lang, weekday)` | `pub function` | Full weekday name, Sunday is 0 (English via stdlib). |
 | `weekday_short(lang, weekday)` | `pub function` | Abbreviated weekday name. |
 | `format_date_full(year, month, day, lang)` | `pub function` | Full date with weekday (Zeller congruence). |

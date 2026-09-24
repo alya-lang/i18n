@@ -296,7 +296,29 @@ function test_locale_numbers(r)
     runner_assert_str_eq(r, pkg::ordinal(2, "fr"), "2e", "fr ordinal")
     runner_assert_str_eq(r, pkg::ordinal(1, "de"), "1.", "de ordinal dot")
     runner_assert_str_eq(r, pkg::ordinal(7, "ja"), "7", "uncovered lang plain number")
+    runner_assert_str_eq(r, pkg::format_list(["a", "b", "c"]), "a, b, and c", "en Oxford list")
+    runner_assert_str_eq(r, pkg::format_list(["a", "b"]), "a and b", "en pair without comma")
+    runner_assert_str_eq(r, pkg::format_list(["solo"]), "solo", "singleton passes through")
+    runner_assert_str_eq(r, pkg::format_list([]), "", "empty list renders empty")
+    runner_assert_str_eq(r, pkg::format_list(["a", "b", "c"], "de"), "a, b und c", "de conjunction")
+    runner_assert_str_eq(r, pkg::format_list(["a", "b"], "ar"), "a و b", "ar pair spacing")
+    runner_assert_str_eq(r, pkg::format_list(["a", "b", "c"], "ja"), "a、b、c", "ja CJK join")
+    runner_assert_str_eq(r, pkg::format_date_ymd(2000, 2, 29), "02/29/2000", "leap day validates")
     let mismatch_caught = 0
+    try
+        pkg::format_date_ymd(2023, 2, 29)
+    catch err
+        mismatch_caught = 1
+    end
+    runner_assert_eq(r, mismatch_caught, 1, "non-leap Feb 29 throws")
+    mismatch_caught = 0
+    try
+        pkg::format_date_ymd(2024, 13, 1)
+    catch err
+        mismatch_caught = 1
+    end
+    runner_assert_eq(r, mismatch_caught, 1, "month 13 throws")
+    mismatch_caught = 0
     try
         pkg::format_number(1.0, "en", -1)
     catch err
