@@ -12,9 +12,9 @@ keywords = ["alya", "alya-lang", "package", "i18n", "locale", "l10n"]
 
 [dependencies]
 json = { git = "https://github.com/alya-lang/json", tag = "v0.1.0" }
-sysinfo = { git = "https://github.com/alya-lang/sysinfo", tag = "v0.1.0" }
-yaml = { git = "https://github.com/alya-lang/yaml", tag = "v0.1.0" }
 toml = { git = "https://github.com/alya-lang/toml", tag = "v0.1.0" }
+yaml = { git = "https://github.com/alya-lang/yaml", tag = "v0.1.0" }
+sysinfo = { git = "https://github.com/alya-lang/sysinfo", tag = "v0.1.0" }
 
 # [build]
 # c-sources = ["c/source.c"]
