@@ -194,6 +194,55 @@ function test_load_dir(r)
     runner_assert_eq(r, len(deb.langs()), 7, "seven fixture languages loaded")
 end
 
+function test_toml_sections(r)
+    let sec_text = "app = 'Top'\n[menu]\nfile = 'File'\nedit = 'Edit'\n[menu.sub]\ndeep = 'Deep'\n"
+    let sec_map = pkg::parse_toml_text(sec_text)
+    runner_assert_str_eq(r, sec_map["app"], "Top", "toml top-level pair kept")
+    runner_assert_str_eq(r, sec_map["menu.file"], "File", "toml [menu] prefixes dotted key")
+    runner_assert_str_eq(r, sec_map["menu.edit"], "Edit", "toml section holds all pairs")
+    runner_assert_str_eq(r, sec_map["menu.sub.deep"], "Deep", "toml [a.b] nests dotted prefix")
+    let typed_text = "[menu]\ncount = 3\nlabel = 'Three'\n"
+    let typed_map = pkg::parse_toml_text(typed_text)
+    runner_assert_eq(r, len(keys(typed_map)), 1, "toml unquoted scalars skipped")
+    runner_assert_str_eq(r, typed_map["menu.label"], "Three", "toml quoted section values kept")
+    let arr_text = "[[items]]\nname = 'x'\n[menu]\nfile = 'File'\n"
+    let arr_map = pkg::parse_toml_text(arr_text)
+    runner_assert_eq(r, len(keys(arr_map)), 1, "toml array tables skipped")
+    runner_assert_str_eq(r, arr_map["menu.file"], "File", "toml parsing resumes after array tables")
+end
+
+function test_introspection(r)
+    let enm = map()
+    enm["hello"] = "Hi"
+    enm["bye"] = "Bye"
+    let dem = map()
+    dem["hello"] = "Hallo"
+    let b = pkg::bundle_new("de", "en")
+    let b = b.put_lang("en", enm)
+    let b = b.put_lang("de", dem)
+    runner_assert_true(r, pkg::has(b, "hello") == true, "has() finds chained key")
+    runner_assert_true(r, pkg::has(b, "nope") == false, "has() misses unknown key")
+    runner_assert_true(r, pkg::has(b, "bye") == true, "has() finds fallback key")
+    let miss = pkg::missing_keys(b, "de")
+    runner_assert_eq(r, len(miss), 1, "missing_keys() finds one gap")
+    runner_assert_str_eq(r, miss[0], "bye", "missing_keys() names the gap")
+    let miss_en = pkg::missing_keys(b, "en")
+    runner_assert_eq(r, len(miss_en), 0, "missing_keys() empty when complete")
+end
+
+function test_locale_numbers(r)
+    runner_assert_str_eq(r, pkg::format_number(1234.5, "en", 2), "1,234.50", "en groups with comma")
+    runner_assert_str_eq(r, pkg::format_number(1234.5, "de", 2), "1.234,50", "de swaps separators")
+    runner_assert_str_eq(r, pkg::format_number(1234.5, "fr", 2), "1 234,50", "fr groups with space")
+    runner_assert_str_eq(r, pkg::format_number(1234.5, "ja", 2), "1234.50", "ja disables grouping")
+    runner_assert_str_eq(r, pkg::format_number(-2.5, "en", 1), "-2.5", "negatives keep sign")
+    runner_assert_str_eq(r, pkg::format_number(2.0, "en", 0), "2", "zero decimals omit separator")
+    runner_assert_str_eq(r, pkg::format_number(999.0, "tr", 0), "999", "small numbers ungrouped")
+    runner_assert_str_eq(r, pkg::format_date_ymd(2024, 12, 31), "12/31/2024", "en date is MDY")
+    runner_assert_str_eq(r, pkg::format_date_ymd(2024, 12, 31, "de"), "31.12.2024", "de date is DMY")
+    runner_assert_str_eq(r, pkg::format_date_ymd(2024, 1, 5, "ja"), "2024/01/05", "ja date is YMD zero-padded")
+end
+
 function test_detect_lang(r)
     runner_assert_true(r, len(pkg::detect_lang()) > 0, "detect_lang returns non-empty tag")
     runner_assert_true(r, len(pkg::system_language("en")) > 0, "system_language returns non-empty tag")
@@ -213,6 +262,9 @@ function main()
     test_fallback_chain(r)
     test_load_dir(r)
     test_detect_lang(r)
+    test_toml_sections(r)
+    test_introspection(r)
+    test_locale_numbers(r)
     let failed = runner_summary(r)
     if failed > 0
         exit(1)

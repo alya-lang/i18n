@@ -10,6 +10,7 @@ import "./tr_parser.alya"
 import "./json_loader.alya"
 import "./plural.alya"
 import "./format.alya"
+import "./number.alya"
 import "./detect.alya"
 import "./loader.alya"
 
@@ -72,12 +73,8 @@ end
 
 ## Returns the raw template for key, or null when untranslated.
 pub function find_raw(bundle, lang: string, key: string)
-    let cands = []
-    cands.push(lang)
-    cands.push(base_lang(lang))
-    cands.push(bundle.fallback)
-    cands.push(base_lang(bundle.fallback))
-    for l in cands
+    let chain = fallback_chain(bundle, lang)
+    for l in chain
         let ck = l + "\n" + key
         if ck in bundle.messages
             return str_from_ptr(bundle.messages[ck])
@@ -168,4 +165,52 @@ pub function tr_in(bundle, lang: string, key: string, vars = null) -> string
         return key
     end
     return interpolate(raw, vars)
+end
+
+## Reports whether key resolves anywhere in the bundle language chain.
+##
+## ### Parameters
+## - `bundle`: Source `I18nBundle`.
+## - `key`: Translation key.
+##
+## ### Returns
+## `true` when a template exists for key, `false` otherwise.
+pub function has(bundle, key: string) -> bool
+    if find_raw(bundle, bundle.lang, key) is null
+        return false
+    end
+    return true
+end
+
+## Lists keys translated in the fallback language but missing in lang.
+##
+## Compares exact language ids (no base-language expansion); useful for
+## translation coverage reports.
+##
+## ### Parameters
+## - `bundle`: Source `I18nBundle`.
+## - `lang`: Language id to audit.
+##
+## ### Returns
+## Array of untranslated key strings.
+pub function missing_keys(bundle, lang: string) -> array
+    let out = []
+    let fb = bundle.fallback
+    for k in keys(bundle.messages)
+        let pos = index_of(k, "\n")
+        if pos > 0
+            if k[0..pos] == fb
+                let key = k[pos + 1..len(k)]
+                let want = lang + "\n" + key
+                let present = 0
+                if want in bundle.messages
+                    present = 1
+                end
+                if present == 0
+                    out.push(key)
+                end
+            end
+        end
+    end
+    return out
 end

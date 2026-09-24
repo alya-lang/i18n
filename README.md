@@ -16,13 +16,15 @@ Lightweight internationalization: locale bundles, gettext-style .tr and JSON loa
 - 🗂️ **Flat JSON Loader**: String translation files with literal dotted keys, language subdirectories as namespaces (`de/app.json` → `app.*`)
 - 📊 **CSV/TSV Loader**: `key,value` records per `<lang>.csv` / `<lang>.tsv` file (RFC-4180 quoting)
 - 📝 **YAML Loader**: Flat string mappings per `<lang>.yaml` / `<lang>.yml`
-- 📦 **TOML Loader**: Top-level `key = "value"` pairs per `<lang>.toml` (`[table]` sections skipped)
+- 📦 **TOML Loader**: `key = "value"` pairs per `<lang>.toml`, `[table]` sections map to dotted keys (`[menu]` → `menu.*`)
 - 🥇 **Format Precedence**: Later format wins — json, yaml, toml, csv, tsv, then `.tr` supreme
 - 🔢 **CLDR-lite Plurals**: Correct one/few/many/other/zero/two rules for Germanic, Slavic, French, Arabic, Polish, Czech/Slovak, and Asian (no-plural) families
 - 🔄 **Pipe Templates**: Positional plural forms (`"one|other"`, `"one|few|many"`) selected by language form order
 - 🧩 **`{placeholder}` Interpolation**: String vars maps with automatic `{count}` injection for plurals
 - 🖥️ **System Language Detection**: Native locale via the `sysinfo` package with `"en"` fallback
-- 🧪 **Test & Benchmark Suite**: 86 assertions (`std/test`) and micro-benchmarks
+- 🧪 **Test & Benchmark Suite**: 110 assertions (`std/test`) and micro-benchmarks
+- 🔍 **Coverage Introspection**: `has` / `missing_keys` translation auditing
+- 🔢 **Locale Numbers & Dates**: Per-family decimal/grouping separators, MDY/DMY/YMD numeric dates
 
 ---
 
@@ -42,16 +44,17 @@ i18n/
 │   ├── json_loader.alya    # Flat JSON loader
 │   ├── csv_loader.alya     # Minimal CSV/TSV reader (key,value records)
 │   ├── yaml_loader.alya    # Flat YAML loader
-│   ├── toml_loader.alya    # Flat TOML loader
+│   ├── toml_loader.alya    # TOML loader ([table] → dotted keys)
 │   ├── plural.alya         # CLDR-lite categories + pipe form orders
 │   ├── format.alya         # Placeholder interpolation
+│   ├── number.alya         # Locale number/date formatting
 │   ├── detect.alya         # System language detection (sysinfo)
 │   └── loader.alya         # Directory walker (.tr wins, subdir namespaces)
 ├── examples/
 │   ├── demo.alya           # Runnable walkthrough of all package capabilities
 │   └── translations/       # Demo translation files (en.tr, tr.tr)
 ├── tests/
-│   ├── test_basic.alya     # Automated test suite (65 assertions)
+│   ├── test_basic.alya     # Automated test suite (110 assertions)
 │   └── translations/       # Fixture files (en/tr/de, .tr + .json)
 └── benches/
     └── bench_basic.alya    # Micro-benchmarks measuring performance and throughput
@@ -140,6 +143,8 @@ main()
 | `detect_lang(default)` | `pub function` | System locale tag via `sysinfo` (`"en"` fallback). |
 | `system_language(default)` | `pub function` | Alias of `detect_lang`. |
 | `find_raw(bundle, lang, key)` | `pub function` | Raw template lookup (null when untranslated). |
+| `has(bundle, key)` | `pub function` | Reports whether key resolves in the language chain. |
+| `missing_keys(bundle, lang)` | `pub function` | Keys translated in fallback but missing in lang. |
 | `fallback_chain(bundle, lang)` | `pub function` | Deduplicated lookup chain. |
 | `vars_with_count(vars, n)` | `pub function` | Copies string vars and injects `{count}`. |
 | `I18nBundle` | `pub struct` | Bundle model (`messages`, `lang`, `fallback`). |
