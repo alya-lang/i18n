@@ -596,6 +596,61 @@ pub function format_money(value: float, lang: string = "en", currency: string = 
     end
 end
 
+## Formats an ordinal number for a language id.
+##
+## English applies the 11-13 exception (`11th`, not `11st`); French uses
+## the masculine `1er` (no gender info available); German/Turkish use a
+## trailing dot (Turkish suffix harmony simplified away).
+##
+## ### Parameters
+## - `n`: Ordinal number.
+## - `lang`: Language id (defaults to `"en"`).
+##
+## ### Returns
+## Ordinal string.
+pub function ordinal(n: int, lang: string = "en") -> string
+    let b = base_lang(lang)
+    return when b
+        is "en" => ordinal_en(n)
+        is "es", "it", "pt" => str(n) + "º"
+        is "fr" => ordinal_fr(n)
+        is "de", "tr" => str(n) + "."
+        is "nl" => str(n) + "e"
+        else => str(n)
+    end
+end
+
+## English ordinal with the 11-13 exception.
+function ordinal_en(n: int) -> string
+    let v: int = n
+    if v < 0
+        v = -v
+    end
+    let last_two: int = v % 100
+    if last_two >= 11 and last_two <= 13
+        return str(n) + "th"
+    end
+    let last: int = v % 10
+    if last == 1
+        return str(n) + "st"
+    end
+    if last == 2
+        return str(n) + "nd"
+    end
+    if last == 3
+        return str(n) + "rd"
+    end
+    return str(n) + "th"
+end
+
+## French ordinal (masculine `1er`, plural `1ers` unknown here).
+function ordinal_fr(n: int) -> string
+    if n == 1
+        return "1er"
+    end
+    return str(n) + "e"
+end
+
 ## Formats a numeric calendar date in locale order (no month names).
 ##
 ## Korean trailing-dot style simplifies to dots (`2024.12.31`).
