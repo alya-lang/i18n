@@ -1,0 +1,32 @@
+## # i18n/yaml_loader
+##
+## Flat YAML translation loader (string values only).
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
+##
+## Translation YAML is a flat mapping of string values (`title: Ciao`).
+## Quote every value: unquoted scalars arrive typed and cannot be pinned
+## safely, so only quoted strings are consumed.
+
+import "yaml" as yaml_pkg
+
+## Parses flat YAML translation text into a key -> template map.
+##
+## ### Parameters
+## - `text`: Raw YAML mapping content.
+##
+## ### Returns
+## Flat map of translation keys to template strings.
+pub function parse_yaml_text(text) -> map
+    let out = map()
+    if text is null or len(text) == 0
+        return out
+    end
+    let data = yaml_pkg::parse(text)
+    if data is null
+        return out
+    end
+    for k in keys(data)
+        out[k] = str_from_ptr(data[k])
+    end
+    return out
+end

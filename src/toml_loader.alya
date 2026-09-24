@@ -1,0 +1,32 @@
+## # i18n/toml_loader
+##
+## Flat TOML translation loader (top-level string values only).
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
+##
+## Only top-level `key = "value"` pairs are consumed; `[table]` sections
+## are skipped. Quote every value: unquoted scalars arrive typed and cannot
+## be pinned safely, so only quoted strings are consumed.
+
+import "toml" as toml_pkg
+
+## Parses flat TOML translation text into a key -> template map.
+##
+## ### Parameters
+## - `text`: Raw TOML document content.
+##
+## ### Returns
+## Flat map of translation keys to template strings.
+pub function parse_toml_text(text) -> map
+    let out = map()
+    if text is null or len(text) == 0
+        return out
+    end
+    let data = toml_pkg::parse(text)
+    if data is null
+        return out
+    end
+    for k in keys(data)
+        out[k] = str_from_ptr(data[k])
+    end
+    return out
+end

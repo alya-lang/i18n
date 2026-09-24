@@ -43,6 +43,31 @@ function test_json_flat(r)
     runner_assert_eq(r, len(keys(pkg::parse_json_text(""))), 0, "json empty text gives empty map")
 end
 
+function test_csv_tsv(r)
+    let csv_text = "key,value\nhello,Hi\nempty,\n,orphan\n"
+    let csv_map = pkg::parse_csv_text(csv_text)
+    runner_assert_str_eq(r, csv_map["hello"], "Hi", "csv parses key,value rows")
+    runner_assert_str_eq(r, csv_map["empty"], "", "csv keeps empty values")
+    runner_assert_eq(r, len(keys(csv_map)), 2, "csv skips empty keys")
+    runner_assert_eq(r, len(keys(pkg::parse_csv_text(""))), 0, "csv empty text gives empty map")
+    let tsv_text = "key\tvalue\nhello\tHola\n"
+    let tsv_map = pkg::parse_tsv_text(tsv_text)
+    runner_assert_str_eq(r, tsv_map["hello"], "Hola", "tsv parses tab rows")
+end
+
+function test_yaml_toml(r)
+    let yaml_text = "title: Ciao\nfarewell: Addio\n"
+    let yaml_map = pkg::parse_yaml_text(yaml_text)
+    runner_assert_str_eq(r, yaml_map["title"], "Ciao", "yaml parses flat mapping")
+    runner_assert_str_eq(r, yaml_map["farewell"], "Addio", "yaml reads all entries")
+    runner_assert_eq(r, len(keys(pkg::parse_yaml_text(""))), 0, "yaml empty text gives empty map")
+    let toml_text = "title = 'Hola'\nfarewell = 'Adios'\n"
+    let toml_map = pkg::parse_toml_text(toml_text)
+    runner_assert_str_eq(r, toml_map["title"], "Hola", "toml parses top-level pairs")
+    runner_assert_str_eq(r, toml_map["farewell"], "Adios", "toml reads all pairs")
+    runner_assert_eq(r, len(keys(pkg::parse_toml_text(""))), 0, "toml empty text gives empty map")
+end
+
 function test_plural_categories(r)
     runner_assert_str_eq(r, pkg::plural_category("en", 0), "other", "en 0 -> other")
     runner_assert_str_eq(r, pkg::plural_category("en", 1), "one", "en 1 -> one")
@@ -151,7 +176,22 @@ function test_load_dir(r)
     runner_assert_str_eq(r, pkg::t(deb, "app.title"), "Titel", "load_dir namespaces subdirectories")
     runner_assert_str_eq(r, pkg::t(deb, "app.logout"), "Abmelden", "load_dir reads namespaced keys")
     runner_assert_str_eq(r, pkg::t(deb, "msg_hello"), "Hello", "missing keys fall back across languages")
-    runner_assert_eq(r, len(deb.langs()), 3, "three fixture languages loaded")
+
+    let frb = pkg::load_bundle(dir, "fr", "en")
+    runner_assert_str_eq(r, pkg::t(frb, "msg_hello"), "Bonjour", "load_dir reads csv files")
+    runner_assert_str_eq(r, pkg::t(frb, "farewell_fr"), "Au revoir!", "csv rows land per language")
+    let esb = pkg::load_bundle(dir, "es", "en")
+    runner_assert_str_eq(r, pkg::t(esb, "msg_hello"), "Hola", "load_dir reads tsv files")
+    let itb = pkg::load_bundle(dir, "it", "en")
+    runner_assert_str_eq(r, pkg::t(itb, "msg_hello"), "Ciao", "load_dir reads yaml files")
+    runner_assert_str_eq(r, pkg::t(itb, "farewell_it"), "Addio", "yaml entries land per language")
+    let ptb = pkg::load_bundle(dir, "pt", "en")
+    runner_assert_str_eq(r, pkg::t(ptb, "msg_hello"), "Olá", "load_dir reads toml files")
+    runner_assert_str_eq(r, pkg::t(lb, "csv_only"), "tr csv value", "csv entries merge into lang table")
+    runner_assert_str_eq(r, pkg::t(enb, "yaml_only"), "from yaml", "yaml entries merge into lang table")
+    runner_assert_str_eq(r, pkg::t(enb, "toml_only"), "from toml", "toml entries merge into lang table")
+    runner_assert_str_eq(r, pkg::t(lb, "msg_hello"), "Merhaba", ".tr wins over .csv")
+    runner_assert_eq(r, len(deb.langs()), 7, "seven fixture languages loaded")
 end
 
 function test_detect_lang(r)
@@ -164,6 +204,8 @@ function main()
     let r = runner_new()
     test_tr_parsing(r)
     test_json_flat(r)
+    test_csv_tsv(r)
+    test_yaml_toml(r)
     test_plural_categories(r)
     test_interpolate(r)
     test_inline_bundle(r)

@@ -1,0 +1,108 @@
+## # i18n/csv_loader
+##
+## Minimal CSV/TSV translation readers (`key,value` records per file).
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
+##
+## Files are named `<lang>.csv` / `<lang>.tsv`; the first row is the header
+## (`key,value`). Rows with empty keys are skipped; quoted fields may hold
+## delimiters and newlines per RFC-4180.
+##
+## NOTE: implemented locally (instead of delegating to the csv package) so
+## translation loading stays dependency-light and free of cross-package
+## call-depth effects; full RFC-4180 power remains in `alya-lang/csv`.
+
+import "std/str"
+
+## Splits one CSV line into fields honoring double-quoted sections.
+function split_csv_line(line: string, delim: string) -> array
+    let fields = []
+    let cur = ""
+    let in_quotes = 0
+    let i = 0
+    let n = len(line)
+    while i < n
+        let ch = char_at(line, i)
+        if in_quotes == 1
+            if ch == "\""
+                if i + 1 < n and char_at(line, i + 1) == "\""
+                    cur = cur + "\""
+                    i += 1
+                else
+                    in_quotes = 0
+                end
+            else
+                cur = cur + ch
+            end
+        else
+            if ch == "\"" and len(cur) == 0
+                in_quotes = 1
+            elif ch == delim
+                fields.push(cur)
+                cur = ""
+            else
+                cur = cur + ch
+            end
+        end
+        i += 1
+    end
+    fields.push(cur)
+    return fields
+end
+
+## Parses key,value text with the given delimiter into a flat map.
+function parse_delimited_text(text, delim: string) -> map
+    let out = map()
+    if text is null or len(text) == 0
+        return out
+    end
+    let norm = replace(text, "\r\n", "\n")
+    let lines = split(norm, "\n")
+    let started = 0
+    for line in lines
+        if len(line) == 0
+            continue
+        end
+        let fields = split_csv_line(line, delim)
+        if started == 0
+            started = 1
+            if len(fields) >= 2
+                if trim(fields[0]) == "key"
+                    if trim(fields[1]) == "value"
+                        continue
+                    end
+                end
+            end
+        end
+        if len(fields) < 2
+            continue
+        end
+        let k = trim(fields[0])
+        if len(k) == 0
+            continue
+        end
+        out[k] = fields[1]
+    end
+    return out
+end
+
+## Parses key,value CSV text into a flat map.
+##
+## ### Parameters
+## - `text`: Raw CSV content with a `key,value` header row.
+##
+## ### Returns
+## Flat map of translation keys to template strings.
+pub function parse_csv_text(text) -> map
+    return parse_delimited_text(text, ",")
+end
+
+## Parses key/value TSV text into a flat map.
+##
+## ### Parameters
+## - `text`: Raw TSV content with a `key<tab>value` header row.
+##
+## ### Returns
+## Flat map of translation keys to template strings.
+pub function parse_tsv_text(text) -> map
+    return parse_delimited_text(text, "\t")
+end

@@ -40,6 +40,8 @@ function main()
     w["name"] = "Ali"
     say "tr welc:  " + pkg::t(lb, "welcome", w)
     say "langs:   " + str(len(lb.langs()))
+    let deb = pkg::load_bundle(dir, "de", "en")
+    say "de hello: " + pkg::t(deb, "msg_hello")
     say ""
 
     say "--- 3. Fallback chain ---"

@@ -13,12 +13,16 @@ Lightweight internationalization: locale bundles, gettext-style .tr and JSON loa
 
 - 🌍 **Locale Bundles**: `I18nBundle` tables with active language, fallback chain (lang → base → fallback), and explicit-language lookup
 - 📄 **gettext-style `.tr` Loader**: Key/value entries with `-----` separators, multiline values, CRLF-safe
-- 🗂️ **Flat JSON Loader**: String translation files with literal dotted keys, language subdirectories as namespaces (`de/app.json` → `app.*`), `.tr` wins on conflicts
+- 🗂️ **Flat JSON Loader**: String translation files with literal dotted keys, language subdirectories as namespaces (`de/app.json` → `app.*`)
+- 📊 **CSV/TSV Loader**: `key,value` records per `<lang>.csv` / `<lang>.tsv` file (RFC-4180 quoting)
+- 📝 **YAML Loader**: Flat string mappings per `<lang>.yaml` / `<lang>.yml`
+- 📦 **TOML Loader**: Top-level `key = "value"` pairs per `<lang>.toml` (`[table]` sections skipped)
+- 🥇 **Format Precedence**: Later format wins — json, yaml, toml, csv, tsv, then `.tr` supreme
 - 🔢 **CLDR-lite Plurals**: Correct one/few/many/other/zero/two rules for Germanic, Slavic, French, Arabic, Polish, Czech/Slovak, and Asian (no-plural) families
 - 🔄 **Pipe Templates**: Positional plural forms (`"one|other"`, `"one|few|many"`) selected by language form order
 - 🧩 **`{placeholder}` Interpolation**: String vars maps with automatic `{count}` injection for plurals
 - 🖥️ **System Language Detection**: Native locale via the `sysinfo` package with `"en"` fallback
-- 🧪 **Test & Benchmark Suite**: 65 assertions (`std/test`) and micro-benchmarks
+- 🧪 **Test & Benchmark Suite**: 86 assertions (`std/test`) and micro-benchmarks
 
 ---
 
@@ -30,12 +34,15 @@ i18n/
 ├── .editorconfig           # Uniform formatting rules across IDEs and editors
 ├── .gitignore              # Ecosystem standard ignore filters
 ├── .vscode/                # VS Code workspace settings, DAP launch configurations & tasks
-├── alya.toml               # Package manifest (depends on `json`, `sysinfo`)
+├── alya.toml               # Package manifest (depends on `json`, `sysinfo`, `yaml`, `toml`)
 ├── src/
 │   ├── lib.alya            # Public API facade (load_bundle, t, plural, tr_in)
 │   ├── types.alya          # I18nBundle model, constructors, set_lang/langs
 │   ├── tr_parser.alya      # .tr file parser
 │   ├── json_loader.alya    # Flat JSON loader
+│   ├── csv_loader.alya     # Minimal CSV/TSV reader (key,value records)
+│   ├── yaml_loader.alya    # Flat YAML loader
+│   ├── toml_loader.alya    # Flat TOML loader
 │   ├── plural.alya         # CLDR-lite categories + pipe form orders
 │   ├── format.alya         # Placeholder interpolation
 │   ├── detect.alya         # System language detection (sysinfo)
@@ -97,12 +104,13 @@ main()
 ```
 
 > [!NOTE]
-> **v0.1.0 contracts:** JSON translation files are flat objects of string
-> values (literal dotted keys stay literal); nested objects, arrays, and
-> non-string scalars are not consumed. Placeholder vars values must be
-> strings — inject counts as `str(n)`. These limits follow from native map
-> subscript semantics (variable-key reads of heap values need `str_from_ptr`
-> pinning); nested-JSON support is planned alongside compiler map improvements.
+> **v0.1.0 contracts:** JSON/YAML/TOML translation files are flat objects of
+> string values (literal dotted keys stay literal); nested objects, arrays,
+> and non-string scalars are not consumed — quote every value. CSV/TSV files
+> use a `key,value` header row. Placeholder vars values must be strings —
+> inject counts as `str(n)`. These limits follow from native map subscript
+> semantics (variable-key reads of heap values need `str_from_ptr` pinning);
+> richer shapes are planned alongside compiler map improvements.
 
 ---
 
@@ -118,6 +126,10 @@ main()
 | `load_dir(dir)` | `pub function` | Loads `<lang>.tr` / `<lang>.json` (+ language subdirs) into a flat table (`.tr` wins). |
 | `parse_tr_text(text)` | `pub function` | Parses `.tr` text (key lines, `-----` separators, multiline values). |
 | `parse_json_text(text)` | `pub function` | Parses flat JSON string values (literal dotted keys stay literal). |
+| `parse_csv_text(text)` | `pub function` | Parses `key,value` CSV records (first row is the header). |
+| `parse_tsv_text(text)` | `pub function` | Parses `key<tab>value` TSV records. |
+| `parse_yaml_text(text)` | `pub function` | Parses flat YAML string mappings. |
+| `parse_toml_text(text)` | `pub function` | Parses top-level TOML `key = "value"` pairs. |
 | `t(bundle, key, vars)` | `pub function` | Translates with fallback chain; missing keys return the key itself. |
 | `plural(bundle, key, n, vars)` | `pub function` | Pipe-template plural with `{count}` injection. |
 | `tr_in(bundle, lang, key, vars)` | `pub function` | Translates in an explicit language. |
