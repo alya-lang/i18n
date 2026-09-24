@@ -85,10 +85,10 @@ end
 ## Formatted number string.
 ##
 ## ### Throws
-## Negative decimals.
+## Negative decimals, or decimals above 18 (`10^19` overflows int64).
 pub function format_number(value: float, lang: string = "en", decimals: int = 2, digits: string = "latn") -> string
-    if decimals < 0
-        throw "format_number requires non-negative decimals"
+    if decimals < 0 or decimals > 18
+        throw "format_number requires decimals in 0..18"
     end
     let scale: int = 1
     let d: int = 0
@@ -196,6 +196,10 @@ function months_full(lang: string) -> array
         is "pt" => ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
         is "tr" => ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
         is "nl" => ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"]
+        is "ru" => ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"]
+        is "ar" => ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+        is "ja", "zh", "yue" => ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"]
+        is "ko" => ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"]
         else => ["", "", "", "", "", "", "", "", "", "", "", ""]
     end
 end
@@ -211,15 +215,19 @@ function months_short(lang: string) -> array
         is "pt" => ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
         is "tr" => ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"]
         is "nl" => ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"]
+        is "ru" => ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"]
+        is "ar" => ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+        is "ja", "zh", "yue" => ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"]
+        is "ko" => ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"]
         else => ["", "", "", "", "", "", "", "", "", "", "", ""]
     end
 end
 
 ## Returns the full month name for a language id.
 ##
-## English (and uncovered languages) delegate to `std/time`; Russian,
-## Arabic, and CJK scripts stay on the follow-up list (declension and
-## script complexity).
+## English (and uncovered languages) delegate to `std/time`. Russian uses
+## the nominative case (dates ideally want the genitive — documented
+## simplification).
 ##
 ## ### Parameters
 ## - `lang`: Language id.
@@ -298,6 +306,10 @@ function weekdays_full(lang: string) -> array
         is "pt" => ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"]
         is "tr" => ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"]
         is "nl" => ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"]
+        is "ru" => ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"]
+        is "ar" => ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"]
+        is "ja", "zh", "yue" => ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"]
+        is "ko" => ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"]
         else => ["", "", "", "", "", "", ""]
     end
 end
@@ -313,6 +325,10 @@ function weekdays_short(lang: string) -> array
         is "pt" => ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"]
         is "tr" => ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"]
         is "nl" => ["zo", "ma", "di", "wo", "do", "vr", "za"]
+        is "ru" => ["вс", "пн", "вт", "ср", "чт", "пт", "сб"]
+        is "ar" => ["أحد", "اثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت"]
+        is "ja", "zh", "yue" => ["日", "月", "火", "水", "木", "金", "土"]
+        is "ko" => ["일", "월", "화", "수", "목", "금", "토"]
         else => ["", "", "", "", "", "", ""]
     end
 end
@@ -405,6 +421,179 @@ pub function format_date_full(year: int, month: int, day: int, lang: string = "e
         return wd + ", " + name + " " + str(day) + ", " + str(year)
     end
     return wd + " " + str(day) + " " + name + " " + str(year)
+end
+
+## Reports whether a language id uses the 12-hour clock.
+function uses_12h(lang: string) -> bool
+    let b = base_lang(lang)
+    return when b
+        is "en", "ar" => true
+        else => false
+    end
+end
+
+## AM/PM markers for 12-hour languages ([am, pm]).
+function day_periods(lang: string) -> array
+    let b = base_lang(lang)
+    return when b
+        is "ar" => ["ص", "م"]
+        else => ["AM", "PM"]
+    end
+end
+
+## Formats a time of day in locale convention.
+##
+## 12-hour languages (`en`, `ar`) render `h:MM AM/PM`; the rest render
+## zero-padded 24-hour `HH:MM`.
+##
+## ### Parameters
+## - `hour`: Hour 0-23.
+## - `minute`: Minute 0-59.
+## - `lang`: Language id (defaults to `"en"`).
+##
+## ### Returns
+## Formatted time string.
+##
+## ### Throws
+## Hour/minute out of range.
+pub function format_time(hour: int, minute: int, lang: string = "en") -> string
+    if hour < 0 or hour > 23 or minute < 0 or minute > 59
+        throw "format_time requires hour 0..23 and minute 0..59"
+    end
+    if uses_12h(lang)
+        let marks = day_periods(lang)
+        let h12: int = hour % 12
+        if h12 == 0
+            h12 = 12
+        end
+        let suffix = marks[0]
+        if hour >= 12
+            suffix = marks[1]
+        end
+        return str(h12) + ":" + pad2(minute) + " " + suffix
+    end
+    return pad2(hour) + ":" + pad2(minute)
+end
+
+## Past wrapper for a formatted duration ("3 days ago", "vor 3 Tagen").
+function past_wrap(lang: string, text: string) -> string
+    let b = base_lang(lang)
+    return when b
+        is "de" => "vor " + text
+        is "fr" => "il y a " + text
+        is "es" => "hace " + text
+        is "tr" => text + " önce"
+        is "ar" => "منذ " + text
+        is "ja", "zh", "yue" => text + "前"
+        is "ko" => text + " 전"
+        else => text + " ago"
+    end
+end
+
+## Future wrapper for a formatted duration ("in 3 days", "in 3 Tagen").
+function future_wrap(lang: string, text: string) -> string
+    let b = base_lang(lang)
+    return when b
+        is "de" => "in " + text
+        is "fr" => "dans " + text
+        is "es" => "en " + text
+        is "tr" => text + " sonra"
+        is "ar" => "بعد " + text
+        is "ja", "zh", "yue" => text + "後"
+        is "ko" => text + " 후"
+        else => "in " + text
+    end
+end
+
+## Formats a past relative time from a bundle unit template.
+##
+## Looks up `time.<unit>` (e.g. `"time.day"` → `"one day|{{count}} days"`)
+## via `plural_in`, then wraps it ("3 days ago"). Missing templates fall
+## back to the key itself, per `plural_in` semantics.
+##
+## ### Parameters
+## - `bundle`: Source `I18nBundle` holding `time.<unit>` templates.
+## - `lang`: Language id.
+## - `n`: Item count.
+## - `unit`: Time unit key (`"second"`, `"minute"`, `"hour"`, `"day"`, `"week"`, `"month"`, `"year"`).
+##
+## ### Returns
+## Localized past relative-time string.
+pub function relative_past(bundle, lang: string, n: int, unit: string) -> string
+    return past_wrap(lang, plural_in(bundle, "time." + unit, n, lang))
+end
+
+## Formats a future relative time from a bundle unit template.
+##
+## ### Parameters
+## - `bundle`: Source `I18nBundle` holding `time.<unit>` templates.
+## - `lang`: Language id.
+## - `n`: Item count.
+## - `unit`: Time unit key.
+##
+## ### Returns
+## Localized future relative-time string.
+pub function relative_future(bundle, lang: string, n: int, unit: string) -> string
+    return future_wrap(lang, plural_in(bundle, "time." + unit, n, lang))
+end
+
+## Currency symbol and default decimals ([symbol, decimals]).
+function currency_info(code: string) -> array
+    return when code
+        is "USD" => ["$", 2]
+        is "EUR" => ["€", 2]
+        is "GBP" => ["£", 2]
+        is "JPY" => ["¥", 0]
+        is "TRY" => ["₺", 2]
+        is "RUB" => ["₽", 2]
+        is "CNY" => ["¥", 2]
+        is "SAR" => ["ر.س", 2]
+        is "CHF" => ["CHF", 2]
+        is "SEK" => ["kr", 2]
+        is "NOK" => ["kr", 2]
+        is "DKK" => ["kr", 2]
+        is "AED" => ["د.إ", 2]
+        is "PLN" => ["zł", 2]
+        is "CZK" => ["Kč", 2]
+        is "HUF" => ["Ft", 0]
+        is "ILS" => ["₪", 2]
+        is "BRL" => ["R$", 2]
+        is "INR" => ["₹", 2]
+        is "KRW" => ["₩", 0]
+        is "CAD" => ["CA$", 2]
+        is "AUD" => ["A$", 2]
+        else => [code, 2]
+    end
+end
+
+## Renders a monetary amount with locale separators and currency symbol.
+##
+## Symbol position is per language (prefix without space for `en`/`tr`/
+## CJK, prefix with space for `nl`, suffix with space elsewhere).
+## Unknown currency codes render as-is in prefix position.
+##
+## ### Parameters
+## - `value`: Monetary amount.
+## - `lang`: Language id (defaults to `"en"`).
+## - `currency`: ISO 4217 code (`"USD"`, `"EUR"`, ...).
+## - `decimals`: Fractional digits (`-1` keeps the currency default).
+##
+## ### Returns
+## Formatted money string.
+pub function format_money(value: float, lang: string = "en", currency: string = "USD", decimals: int = -1) -> string
+    let info = currency_info(currency)
+    let symbol = info[0]
+    let dec: int = info[1]
+    if decimals >= 0
+        dec = decimals
+    end
+    let amount = format_number(value, lang, dec)
+    let b = base_lang(lang)
+    return when b
+        is "en", "tr", "ja", "zh", "yue", "ko" => symbol + amount
+        is "nl" => symbol + " " + amount
+        else => amount + " " + symbol
+    end
 end
 
 ## Formats a numeric calendar date in locale order (no month names).
