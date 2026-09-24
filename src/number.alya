@@ -660,21 +660,19 @@ pub function format_list(items: array, lang: string = "en") -> string
         end
         return out
     end
-    let sep = when b
-        is "ar" => "، "
-        else => ", "
+    let sepconj = when b
+        is "ar" => ["، ", "و "]
+        is "de" => [", ", "und "]
+        is "fr" => [", ", "et "]
+        is "es" => [", ", "y "]
+        is "it", "pt" => [", ", "e "]
+        is "tr" => [", ", "ve "]
+        is "nl" => [", ", "en "]
+        is "ru" => [", ", "и "]
+        else => [", ", "and "]
     end
-    let conj = when b
-        is "ar" => "و "
-        is "de" => "und "
-        is "fr" => "et "
-        is "es" => "y "
-        is "it", "pt" => "e "
-        is "tr" => "ve "
-        is "nl" => "en "
-        is "ru" => "и "
-        else => "and "
-    end
+    let sep = sepconj[0]
+    let conj = sepconj[1]
     if n == 2
         return items[0] + " " + trim(conj) + " " + items[1]
     end
