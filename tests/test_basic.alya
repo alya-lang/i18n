@@ -279,6 +279,23 @@ function test_locale_numbers(r)
     runner_assert_str_eq(r, pkg::format_money(1234.0, "ja", "JPY"), "¥1234", "JPY zero decimals, single quadruplet")
     runner_assert_str_eq(r, pkg::format_money(12345.0, "ja", "JPY"), "¥1,2345", "JPY quadruplet grouping")
     runner_assert_str_eq(r, pkg::format_money(2.0, "en", "XXQ"), "XXQ2.00", "unknown currency renders as-is")
+    runner_assert_str_eq(r, pkg::format_money(100.0, "de", "CHF"), "100,00 CHF", "CHF suffix in de")
+    runner_assert_str_eq(r, pkg::format_money(100.0, "hu", "HUF"), "100 Ft", "HUF zero decimals")
+    runner_assert_str_eq(r, pkg::format_money(1000.0, "ko", "KRW"), "₩1000", "KRW zero decimals")
+    runner_assert_str_eq(r, pkg::ordinal(1), "1st", "en ordinal 1st")
+    runner_assert_str_eq(r, pkg::ordinal(2), "2nd", "en ordinal 2nd")
+    runner_assert_str_eq(r, pkg::ordinal(3), "3rd", "en ordinal 3rd")
+    runner_assert_str_eq(r, pkg::ordinal(4), "4th", "en ordinal 4th")
+    runner_assert_str_eq(r, pkg::ordinal(11), "11th", "en ordinal 11th exception")
+    runner_assert_str_eq(r, pkg::ordinal(12), "12th", "en ordinal 12th exception")
+    runner_assert_str_eq(r, pkg::ordinal(13), "13th", "en ordinal 13th exception")
+    runner_assert_str_eq(r, pkg::ordinal(21), "21st", "en ordinal 21st")
+    runner_assert_str_eq(r, pkg::ordinal(111), "111th", "en ordinal 111th exception")
+    runner_assert_str_eq(r, pkg::ordinal(5, "es"), "5º", "es ordinal")
+    runner_assert_str_eq(r, pkg::ordinal(1, "fr"), "1er", "fr ordinal premier")
+    runner_assert_str_eq(r, pkg::ordinal(2, "fr"), "2e", "fr ordinal")
+    runner_assert_str_eq(r, pkg::ordinal(1, "de"), "1.", "de ordinal dot")
+    runner_assert_str_eq(r, pkg::ordinal(7, "ja"), "7", "uncovered lang plain number")
     let mismatch_caught = 0
     try
         pkg::format_number(1.0, "en", -1)
@@ -286,6 +303,13 @@ function test_locale_numbers(r)
         mismatch_caught = 1
     end
     runner_assert_eq(r, mismatch_caught, 1, "format_number throws on negative decimals")
+    mismatch_caught = 0
+    try
+        pkg::format_number(1.0, "en", 19)
+    catch err
+        mismatch_caught = 1
+    end
+    runner_assert_eq(r, mismatch_caught, 1, "format_number throws above 18 decimals")
 end
 
 function test_plural_in(r)
