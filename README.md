@@ -111,9 +111,9 @@ main()
 > string values (literal dotted keys stay literal); nested objects, arrays,
 > and non-string scalars are not consumed — quote every value. CSV/TSV files
 > use a `key,value` header row. Placeholder vars values must be strings —
-> inject counts as `str(n)`. These limits follow from native map subscript
-> semantics (variable-key reads of heap values need `str_from_ptr` pinning);
-> richer shapes are planned alongside compiler map improvements.
+> inject counts as `str(n)`. Variable-key reads return stored values
+> directly, so no pinning is needed; richer shapes are planned alongside
+> compiler map improvements.
 
 ---
 

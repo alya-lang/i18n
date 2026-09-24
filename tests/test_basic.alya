@@ -114,6 +114,8 @@ function test_interpolate(r)
     let v2 = map()
     v2["name"] = "Ali"
     runner_assert_str_eq(r, pkg::interpolate(tmpl2, v2), tmpl2, "interpolate leaves unknown keys")
+    let vk = "name"
+    runner_assert_str_eq(r, pv[vk], "Ali", "variable-key read needs no pinning")
 end
 
 function test_inline_bundle(r)

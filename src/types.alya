@@ -6,9 +6,8 @@
 ## Storage rule: message tables are FLAT. Composite keys join language and
 ## key with a newline (`"en\nmsg_hello"`), and every value is a plain
 ## template string (plural variants use pipe-separated templates such as
-## `"one item|{count} items"`). Native map subscript with a runtime key
-## yields an unboxed pointer for heap values, so all variable-key reads of
-## strings are pinned with `str_from_ptr` at the boundary.
+## `"one item|{count} items"`). Map subscript with a runtime key returns
+## the stored value directly; no `str_from_ptr` pinning is needed.
 
 import "std/str"
 
@@ -54,7 +53,7 @@ pub function I18nBundle.put_lang(self: I18nBundle, lang: string, langmap) -> I18
         return self
     end
     for k in keys(langmap)
-        self.messages[lang + "\n" + k] = str_from_ptr(langmap[k])
+        self.messages[lang + "\n" + k] = langmap[k]
     end
     return self
 end

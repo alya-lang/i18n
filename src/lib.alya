@@ -77,7 +77,7 @@ pub function find_raw(bundle, lang: string, key: string)
     for l in chain
         let ck = l + "\n" + key
         if ck in bundle.messages
-            return str_from_ptr(bundle.messages[ck])
+            return bundle.messages[ck]
         end
     end
     return null
@@ -90,7 +90,7 @@ pub function vars_with_count(vars, n: int)
     let out = map()
     if vars is not null
         for k in keys(vars)
-            out[k] = str_from_ptr(vars[k])
+            out[k] = vars[k]
         end
     end
     let has_count = 0

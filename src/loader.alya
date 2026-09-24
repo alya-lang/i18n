@@ -82,7 +82,7 @@ function merge_file(all, path: string, lang: string, ns: string, kind: string)
         if len(ns) > 0
             fk = ns + "." + k
         end
-        all[lang + "\n" + fk] = str_from_ptr(flat[k])
+        all[lang + "\n" + fk] = flat[k]
     end
 end
 

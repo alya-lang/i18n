@@ -5,8 +5,8 @@
 ##
 ## Translation JSON is a flat object of string values; dotted keys stay
 ## literal (`"menu.file"`). Nested objects, arrays, and non-string scalars
-## are outside the v0.1.0 contract: variable-key reads of heap values come
-## back unboxed, so only top-level string values can be pinned safely.
+## are outside the v0.1.0 contract and are skipped; only top-level string
+## values are consumed.
 
 import "std/str"
 import "json" as json_pkg
@@ -34,7 +34,7 @@ pub function parse_json_text(text) -> map
         return out
     end
     for k in keys(data)
-        out[k] = str_from_ptr(data[k])
+        out[k] = data[k]
     end
     return out
 end

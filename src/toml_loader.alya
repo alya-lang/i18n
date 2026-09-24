@@ -5,7 +5,7 @@
 ##
 ## `[table]` sections map to dotted keys (`[menu]` + `file = "x"` becomes
 ## `menu.file`; `[a.b]` nests to `a.b.`). Only quoted string values are
-## consumed: unquoted scalars arrive typed and cannot be pinned safely.
+## consumed (unquoted scalars fall outside the contract).
 ## `[[array-table]]` sections are skipped. Values come from the real
 ## `toml` parser per section (identical unescaping), so this file only
 ## groups lines and never parses values itself.
@@ -96,7 +96,7 @@ pub function parse_toml_text(text) -> map
             continue
         end
         for k in keys(data)
-            out[sec + k] = str_from_ptr(data[k])
+            out[sec + k] = data[k]
         end
     end
     return out
