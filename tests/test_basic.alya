@@ -241,6 +241,50 @@ function test_locale_numbers(r)
     runner_assert_str_eq(r, pkg::format_date_ymd(2024, 12, 31), "12/31/2024", "en date is MDY")
     runner_assert_str_eq(r, pkg::format_date_ymd(2024, 12, 31, "de"), "31.12.2024", "de date is DMY")
     runner_assert_str_eq(r, pkg::format_date_ymd(2024, 1, 5, "ja"), "2024/01/05", "ja date is YMD zero-padded")
+    runner_assert_str_eq(r, pkg::month_name("en", 1), "January", "en month delegates to stdlib")
+    runner_assert_str_eq(r, pkg::month_name("de", 3), "März", "de month table")
+    runner_assert_str_eq(r, pkg::month_name("tr", 12), "Aralık", "tr month table")
+    runner_assert_str_eq(r, pkg::month_name("xx", 1), "January", "unknown lang falls back to English")
+    runner_assert_str_eq(r, pkg::month_short("fr", 2), "févr.", "fr short table")
+    runner_assert_str_eq(r, pkg::month_name("en", 99), "Unknown", "month out of range")
+    runner_assert_str_eq(r, pkg::format_date_named(2024, 12, 31), "December 31, 2024", "en named date order")
+    runner_assert_str_eq(r, pkg::format_date_named(2024, 12, 31, "de"), "31 Dezember 2024", "de named date order")
+    runner_assert_str_eq(r, pkg::format_number(12345.67, "hi", 2), "12,345.67", "hi groups lakh-style")
+    runner_assert_str_eq(r, pkg::format_number(12345678.0, "ja", 0), "1234,5678", "ja groups in quadruplets")
+    runner_assert_str_eq(r, pkg::format_number(1234.5, "ar", 2, "arab"), "١٬٢٣٤٫٥٠", "arab digits with Arabic separators")
+    runner_assert_str_eq(r, pkg::weekday_name("en", 2), "Tuesday", "en weekday delegates to stdlib")
+    runner_assert_str_eq(r, pkg::weekday_name("de", 2), "Dienstag", "de weekday table")
+    runner_assert_str_eq(r, pkg::weekday_short("tr", 3), "Çar", "tr short weekday table")
+    runner_assert_str_eq(r, pkg::format_date_full(2024, 12, 31), "Tuesday, December 31, 2024", "Zeller Tuesday")
+    runner_assert_str_eq(r, pkg::format_date_full(2000, 2, 29), "Tuesday, February 29, 2000", "Zeller leap day")
+    runner_assert_str_eq(r, pkg::format_date_full(2000, 1, 1), "Saturday, January 1, 2000", "Zeller Y2K Saturday")
+    runner_assert_str_eq(r, pkg::format_date_full(2024, 12, 31, "de"), "Dienstag 31 Dezember 2024", "de full date order")
+    let mismatch_caught = 0
+    try
+        pkg::format_number(1.0, "en", -1)
+    catch err
+        mismatch_caught = 1
+    end
+    runner_assert_eq(r, mismatch_caught, 1, "format_number throws on negative decimals")
+end
+
+function test_plural_in(r)
+    let pum = map()
+    pum["apple"] = "one_en|other_en"
+    let pb = pkg::bundle_new("en", "en")
+    let pb = pb.put_lang("en", pum)
+    let prm = map()
+    prm["apple"] = "eins_de|viele_de"
+    let pb = pb.put_lang("de", prm)
+    runner_assert_str_eq(r, pkg::plural_in(pb, "apple", 1, "de"), "eins_de", "plural_in uses explicit lang")
+    runner_assert_str_eq(r, pkg::plural_in(pb, "apple", 5, "de"), "viele_de", "plural_in plural form in explicit lang")
+    runner_assert_str_eq(r, pkg::plural_in(pb, "apple", 1, "en"), "one_en", "plural_in bundle lang still works")
+    let v = map()
+    v["count"] = "keep-me"
+    let injected = pkg::vars_with_count(v, 9)
+    runner_assert_str_eq(r, injected["count"], "keep-me", "explicit count var wins over injection")
+    let injected2 = pkg::vars_with_count(null, 9)
+    runner_assert_str_eq(r, injected2["count"], "9", "missing count gets injected")
 end
 
 function test_detect_lang(r)
@@ -265,6 +309,7 @@ function main()
     test_toml_sections(r)
     test_introspection(r)
     test_locale_numbers(r)
+    test_plural_in(r)
     let failed = runner_summary(r)
     if failed > 0
         exit(1)

@@ -84,6 +84,8 @@ pub function find_raw(bundle, lang: string, key: string)
 end
 
 ## Copies string vars and injects the count placeholder.
+##
+## An explicitly provided `"count"` value wins over the injection.
 pub function vars_with_count(vars, n: int)
     let out = map()
     if vars is not null
@@ -91,7 +93,15 @@ pub function vars_with_count(vars, n: int)
             out[k] = str_from_ptr(vars[k])
         end
     end
-    out["count"] = str(n)
+    let has_count = 0
+    if vars is not null
+        if "count" in vars
+            has_count = 1
+        end
+    end
+    if has_count == 0
+        out["count"] = str(n)
+    end
     return out
 end
 
@@ -119,7 +129,29 @@ pub function t(bundle, key: string, vars = null) -> string
     return interpolate(raw, vars)
 end
 
-## Translates a plural key for count n with optional placeholders.
+## Selects the plural form from a pipe template for count n.
+##
+## Single templates pass through; pipe templates select positionally by
+## language form order with clamping to the last form.
+function select_plural_form(raw: string, lang: string, n: int) -> string
+    if index_of(raw, "|") < 0
+        return raw
+    end
+    let parts = split(raw, "|")
+    let order = form_order(lang)
+    let cat = plural_category(lang, n)
+    let idx = 0
+    for f in order
+        if f == cat
+            break
+        end
+        idx += 1
+    end
+    if idx >= len(parts)
+        idx = len(parts) - 1
+    end
+    return trim(parts[idx])
+end
 ##
 ## Pipe templates (`"one|other"`, `"one|few|many"`) select positionally by
 ## language form order; single templates are used as-is. The count is
@@ -138,24 +170,7 @@ pub function plural(bundle, key: string, n: int, vars = null) -> string
     if raw is null
         return key
     end
-    let text = raw
-    if index_of(raw, "|") >= 0
-        let parts = split(raw, "|")
-        let order = form_order(bundle.lang)
-        let cat = plural_category(bundle.lang, n)
-        let idx = 0
-        for f in order
-            if f == cat
-                break
-            end
-            idx += 1
-        end
-        if idx >= len(parts)
-            idx = len(parts) - 1
-        end
-        text = trim(parts[idx])
-    end
-    return interpolate(text, vars_with_count(vars, n))
+    return interpolate(select_plural_form(raw, bundle.lang, n), vars_with_count(vars, n))
 end
 
 ## Translates key in an explicit language (ignoring the bundle default).
@@ -165,6 +180,27 @@ pub function tr_in(bundle, lang: string, key: string, vars = null) -> string
         return key
     end
     return interpolate(raw, vars)
+end
+
+## Translates a plural key for count n in an explicit language.
+##
+## Same as `plural` with `lang` overriding the bundle default.
+##
+## ### Parameters
+## - `bundle`: Source `I18nBundle`.
+## - `key`: Translation key.
+## - `n`: Item count.
+## - `lang`: Language id for lookup, forms, and category.
+## - `vars`: Placeholder name -> string value map (or null).
+##
+## ### Returns
+## Interpolated plural string.
+pub function plural_in(bundle, key: string, n: int, lang: string, vars = null) -> string
+    let raw = find_raw(bundle, lang, key)
+    if raw is null
+        return key
+    end
+    return interpolate(select_plural_form(raw, lang, n), vars_with_count(vars, n))
 end
 
 ## Reports whether key resolves anywhere in the bundle language chain.

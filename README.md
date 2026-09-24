@@ -22,7 +22,7 @@ Lightweight internationalization: locale bundles, gettext-style .tr and JSON loa
 - 🔄 **Pipe Templates**: Positional plural forms (`"one|other"`, `"one|few|many"`) selected by language form order
 - 🧩 **`{placeholder}` Interpolation**: String vars maps with automatic `{count}` injection for plurals
 - 🖥️ **System Language Detection**: Native locale via the `sysinfo` package with `"en"` fallback
-- 🧪 **Test & Benchmark Suite**: 110 assertions (`std/test`) and micro-benchmarks
+- 🧪 **Test & Benchmark Suite**: 134 assertions (`std/test`) and micro-benchmarks
 - 🔍 **Coverage Introspection**: `has` / `missing_keys` translation auditing
 - 🔢 **Locale Numbers & Dates**: Per-family decimal/grouping separators, MDY/DMY/YMD numeric dates
 
@@ -54,7 +54,7 @@ i18n/
 │   ├── demo.alya           # Runnable walkthrough of all package capabilities
 │   └── translations/       # Demo translation files (en.tr, tr.tr)
 ├── tests/
-│   ├── test_basic.alya     # Automated test suite (110 assertions)
+│   ├── test_basic.alya     # Automated test suite (134 assertions)
 │   └── translations/       # Fixture files (en/tr/de, .tr + .json)
 └── benches/
     └── bench_basic.alya    # Micro-benchmarks measuring performance and throughput
@@ -145,6 +145,13 @@ main()
 | `find_raw(bundle, lang, key)` | `pub function` | Raw template lookup (null when untranslated). |
 | `has(bundle, key)` | `pub function` | Reports whether key resolves in the language chain. |
 | `missing_keys(bundle, lang)` | `pub function` | Keys translated in fallback but missing in lang. |
+| `plural_in(bundle, key, n, lang, vars)` | `pub function` | Plural translation in an explicit language. |
+| `month_name(lang, month)` | `pub function` | Full month name (7 languages, English via stdlib). |
+| `month_short(lang, month)` | `pub function` | Abbreviated month name. |
+| `format_date_named(year, month, day, lang)` | `pub function` | Locale-ordered date with month name. |
+| `weekday_name(lang, weekday)` | `pub function` | Full weekday name, Sunday is 0 (English via stdlib). |
+| `weekday_short(lang, weekday)` | `pub function` | Abbreviated weekday name. |
+| `format_date_full(year, month, day, lang)` | `pub function` | Full date with weekday (Zeller congruence). |
 | `fallback_chain(bundle, lang)` | `pub function` | Deduplicated lookup chain. |
 | `vars_with_count(vars, n)` | `pub function` | Copies string vars and injects `{count}`. |
 | `I18nBundle` | `pub struct` | Bundle model (`messages`, `lang`, `fallback`). |

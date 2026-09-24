@@ -4,9 +4,10 @@
 ## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
 ##
 ## Covers decimal/grouping separators per language family and numeric
-## date order per locale. Deliberately lite: month names, Arabic-Indic
-## digits, and non-3 grouping systems (lakh/crore, wan) are out of scope.
+## date order per locale. Deliberately lite: non-Latin month/weekday
+## scripts beyond table coverage stay on the follow-up list.
 
+import "std/time" as time
 import "./plural.alya"
 
 ## Decimal separator for a language id (`.` by default).
@@ -20,31 +21,75 @@ function decimal_sep(lang: string) -> string
     end
 end
 
-## Thousands-group separator ("" disables grouping, e.g. CJK).
+## Thousands-group separator ("" disables grouping).
 function group_sep(lang: string) -> string
     let b = base_lang(lang)
     return when b
         is "de", "es", "it", "pt", "tr", "nl" => "."
         is "fr", "pl", "cs", "sk", "ru" => " "
         is "ar" => "٬"
-        is "ja", "zh", "yue", "ko" => ""
+        is "ja", "zh", "yue", "ko" => ","
         else => ","
     end
+end
+
+## Grouping mode: 3 = standard triplets, 4 = CJK quadruplets,
+## 32 = Indic (first group of 3 from the right, then pairs).
+function group_mode(lang: string) -> int
+    let b = base_lang(lang)
+    return when b
+        is "ja", "zh", "yue", "ko" => 4
+        is "hi" => 32
+        else => 3
+    end
+end
+
+## Maps Western digits to Eastern Arabic digits (٠١٢٣٤٥٦٧٨٩).
+function arabic_digits(s: string) -> string
+    let glyphs = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"]
+    let out = ""
+    let i: int = 0
+    while i < len(s)
+        let ch = s[i..i + 1]
+        let d: int = 0
+        let done = 0
+        while d < 10
+            if "0123456789"[d..d + 1] == ch
+                out += glyphs[d]
+                done = 1
+            end
+            d += 1
+        end
+        if done == 0
+            out += ch
+        end
+        i += 1
+    end
+    return out
 end
 
 ## Formats a float with locale separators and fixed decimals.
 ##
 ## Rounds half away from zero; negative zero normalizes to `"0..."`.
-## Arabic uses Western digits with Arabic separators (lite choice).
+## `digits` selects Western (`"latn"`, default) or Eastern Arabic
+## (`"arab"`, ٠١٢٣٤٥٦٧٨٩) numerals; Arabic keeps Western digits unless
+## asked. Hindi groups lakh-style (`12,34,567`), CJK in quadruplets.
 ##
 ## ### Parameters
 ## - `value`: Number to format.
 ## - `lang`: Language id (defaults to `"en"`).
 ## - `decimals`: Fractional digit count (non-negative).
+## - `digits`: Numeral system (`"latn"` or `"arab"`).
 ##
 ## ### Returns
 ## Formatted number string.
-pub function format_number(value: float, lang: string = "en", decimals: int = 2) -> string
+##
+## ### Throws
+## Negative decimals.
+pub function format_number(value: float, lang: string = "en", decimals: int = 2, digits: string = "latn") -> string
+    if decimals < 0
+        throw "format_number requires non-negative decimals"
+    end
     let scale: int = 1
     let d: int = 0
     while d < decimals
@@ -69,28 +114,45 @@ pub function format_number(value: float, lang: string = "en", decimals: int = 2)
     end
     let int_part: int = scaled / scale
     let frac_part: int = scaled - int_part * scale
-    let digits = str(int_part)
+    let digits_str = str(int_part)
     let gsep = group_sep(lang)
-    if len(gsep) > 0 and len(digits) > 3
+    let mode = group_mode(lang)
+    if len(digits_str) > 3
         let grouped = ""
-        let pos: int = len(digits) % 3
-        if pos == 0
-            pos = 3
+        let pos: int = len(digits_str)
+        let first = 1
+        while pos > 0
+            let sz = 3
+            if mode == 4
+                sz = 4
+            elif mode == 32 and first == 0
+                sz = 2
+            end
+            let start: int = pos - sz
+            if start < 0
+                start = 0
+            end
+            let chunk = digits_str[start..pos]
+            if len(grouped) == 0
+                grouped = chunk
+            else
+                grouped = chunk + gsep + grouped
+            end
+            pos = start
+            first = 0
         end
-        grouped += digits[0..pos]
-        while pos < len(digits)
-            grouped += gsep + digits[pos..pos + 3]
-            pos += 3
-        end
-        digits = grouped
+        digits_str = grouped
     end
-    let out = sign + digits
+    let out = sign + digits_str
     if decimals > 0
         let frac = str(frac_part)
         while len(frac) < decimals
             frac = "0" + frac
         end
         out += decimal_sep(lang) + frac
+    end
+    if digits == "arab"
+        return arabic_digits(out)
     end
     return out
 end
@@ -121,6 +183,228 @@ function pad2(n: int) -> string
         return "0" + str(n)
     end
     return str(n)
+end
+
+## Full month names per supported language (English delegates to stdlib).
+function months_full(lang: string) -> array
+    let b = base_lang(lang)
+    return when b
+        is "de" => ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"]
+        is "fr" => ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
+        is "es" => ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+        is "it" => ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"]
+        is "pt" => ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+        is "tr" => ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
+        is "nl" => ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"]
+        else => ["", "", "", "", "", "", "", "", "", "", "", ""]
+    end
+end
+
+## Abbreviated month names per supported language.
+function months_short(lang: string) -> array
+    let b = base_lang(lang)
+    return when b
+        is "de" => ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
+        is "fr" => ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."]
+        is "es" => ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic"]
+        is "it" => ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
+        is "pt" => ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
+        is "tr" => ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"]
+        is "nl" => ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"]
+        else => ["", "", "", "", "", "", "", "", "", "", "", ""]
+    end
+end
+
+## Returns the full month name for a language id.
+##
+## English (and uncovered languages) delegate to `std/time`; Russian,
+## Arabic, and CJK scripts stay on the follow-up list (declension and
+## script complexity).
+##
+## ### Parameters
+## - `lang`: Language id.
+## - `month`: Month number 1-12.
+##
+## ### Returns
+## Full month name, or `"Unknown"` when out of range.
+pub function month_name(lang: string, month: int) -> string
+    if month < 1 or month > 12
+        return "Unknown"
+    end
+    let b = base_lang(lang)
+    if b == "en"
+        return time::month_name(month)
+    end
+    let table = months_full(lang)
+    if table[0] == ""
+        return time::month_name(month)
+    end
+    return table[month - 1]
+end
+
+## Returns the abbreviated month name for a language id.
+##
+## ### Parameters
+## - `lang`: Language id.
+## - `month`: Month number 1-12.
+##
+## ### Returns
+## Abbreviated month name, or `"Unk"` when out of range.
+pub function month_short(lang: string, month: int) -> string
+    if month < 1 or month > 12
+        return "Unk"
+    end
+    let b = base_lang(lang)
+    if b == "en"
+        return time::month_short_name(month)
+    end
+    let table = months_short(lang)
+    if table[0] == ""
+        return time::month_short_name(month)
+    end
+    return table[month - 1]
+end
+
+## Formats a calendar date with the locale month name.
+##
+## English uses `"December 31, 2024"` order; other covered languages use
+## simplified `"{day} {month} {year}"` (particles dropped, documented).
+##
+## ### Parameters
+## - `year`: Full year (e.g. `2024`).
+## - `month`: Month number 1-12.
+## - `day`: Day number 1-31.
+## - `lang`: Language id (defaults to `"en"`).
+##
+## ### Returns
+## Named date string.
+pub function format_date_named(year: int, month: int, day: int, lang: string = "en") -> string
+    let name = month_name(lang, month)
+    let b = base_lang(lang)
+    if b == "en"
+        return name + " " + str(day) + ", " + str(year)
+    end
+    return str(day) + " " + name + " " + str(year)
+end
+
+## Full weekday names per supported language (English via stdlib).
+function weekdays_full(lang: string) -> array
+    let b = base_lang(lang)
+    return when b
+        is "de" => ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"]
+        is "fr" => ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"]
+        is "es" => ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"]
+        is "it" => ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"]
+        is "pt" => ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"]
+        is "tr" => ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"]
+        is "nl" => ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"]
+        else => ["", "", "", "", "", "", ""]
+    end
+end
+
+## Abbreviated weekday names per supported language.
+function weekdays_short(lang: string) -> array
+    let b = base_lang(lang)
+    return when b
+        is "de" => ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"]
+        is "fr" => ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."]
+        is "es" => ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"]
+        is "it" => ["dom", "lun", "mar", "mer", "gio", "ven", "sab"]
+        is "pt" => ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"]
+        is "tr" => ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"]
+        is "nl" => ["zo", "ma", "di", "wo", "do", "vr", "za"]
+        else => ["", "", "", "", "", "", ""]
+    end
+end
+
+## Returns the full weekday name for a language id (Sunday is 0).
+##
+## English (and uncovered languages) delegate to `std/time`.
+##
+## ### Parameters
+## - `lang`: Language id.
+## - `weekday`: Weekday number with Sunday as 0.
+##
+## ### Returns
+## Full weekday name, or `"Unknown"` when out of range.
+pub function weekday_name(lang: string, weekday: int) -> string
+    if weekday < 0 or weekday > 6
+        return "Unknown"
+    end
+    let b = base_lang(lang)
+    if b == "en"
+        return time::weekday_name(weekday)
+    end
+    let table = weekdays_full(lang)
+    if table[0] == ""
+        return time::weekday_name(weekday)
+    end
+    return table[weekday]
+end
+
+## Returns the abbreviated weekday name for a language id (Sunday is 0).
+##
+## ### Parameters
+## - `lang`: Language id.
+## - `weekday`: Weekday number with Sunday as 0.
+##
+## ### Returns
+## Abbreviated weekday name, or `"Unk"` when out of range.
+pub function weekday_short(lang: string, weekday: int) -> string
+    if weekday < 0 or weekday > 6
+        return "Unk"
+    end
+    let b = base_lang(lang)
+    if b == "en"
+        return time::weekday_short_name(weekday)
+    end
+    let table = weekdays_short(lang)
+    if table[0] == ""
+        return time::weekday_short_name(weekday)
+    end
+    return table[weekday]
+end
+
+## Computes the weekday for a Gregorian date (Sunday is 0).
+##
+## Zeller's congruence; valid for proleptic Gregorian dates with
+## year >= 1. All terms stay non-negative, so truncation is exact.
+function weekday_of_ymd(year: int, month: int, day: int) -> int
+    let m: int = month
+    let y: int = year
+    if m <= 2
+        m += 12
+        y -= 1
+    end
+    let q: int = day
+    let k: int = y % 100
+    let j: int = (y - k) / 100
+    let h: int = q + (13 * (m + 1)) / 5 + k + k / 4 + j / 4 + 5 * j
+    h = h % 7
+    return (h + 6) % 7
+end
+
+## Formats a full calendar date with weekday and month names.
+##
+## English uses `"Tuesday, December 31, 2024"`; other covered languages
+## use simplified `"{weekday} {day} {month} {year}"`.
+##
+## ### Parameters
+## - `year`: Full year (e.g. `2024`, >= 1).
+## - `month`: Month number 1-12.
+## - `day`: Day number 1-31.
+## - `lang`: Language id (defaults to `"en"`).
+##
+## ### Returns
+## Full named date string.
+pub function format_date_full(year: int, month: int, day: int, lang: string = "en") -> string
+    let wd = weekday_name(lang, weekday_of_ymd(year, month, day))
+    let name = month_name(lang, month)
+    let b = base_lang(lang)
+    if b == "en"
+        return wd + ", " + name + " " + str(day) + ", " + str(year)
+    end
+    return wd + " " + str(day) + " " + name + " " + str(year)
 end
 
 ## Formats a numeric calendar date in locale order (no month names).

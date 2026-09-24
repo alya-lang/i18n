@@ -54,6 +54,18 @@ function main()
     say "--- 4. System language ---"
     say "system:  " + pkg::system_language("en")
     say ""
+
+    say "--- 5. Introspection, numbers, months ---"
+    if pkg::has(lb, "msg_hello")
+        say "has:     yes"
+    else
+        say "has:     NO (BUG)"
+    end
+    say "missing: " + str(len(pkg::missing_keys(lb, "tr")))
+    say "num-de:  " + pkg::format_number(1234.5, "de", 2)
+    say "dec-31:  " + pkg::format_date_named(2024, 12, 31, "de")
+    say "plural-: " + pkg::plural_in(lb, "items", 1, "en")
+    say ""
     say "Done!"
 end
 
