@@ -16,12 +16,6 @@ toml = { git = "https://github.com/alya-lang/toml", tag = "v0.1.0" }
 yaml = { git = "https://github.com/alya-lang/yaml", tag = "v0.1.0" }
 sysinfo = { git = "https://github.com/alya-lang/sysinfo", tag = "v0.1.0" }
 
-# [build]
-# c-sources = ["c/source.c"]
-# c-flags = ["-O2"]
-# c-include-dirs = ["c"]
-# links = "i18n"
-
 # [lint]
 # disabled_rules = []
 # exclude = []
