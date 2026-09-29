@@ -81,6 +81,30 @@ alya add i18n --git https://github.com/alya-lang/i18n --branch main
 alya install
 ```
 
+### Package Features
+
+| Feature | Default | Description |
+|:---|:---:|:---|
+| `json` | ✅ | JSON translation files (`parse_json_text`, `.json` directory loading). Needs `Lib/json`. |
+| `toml` | ✅ | TOML translation files (`parse_toml_text`, `.toml` directory loading). Needs `Lib/toml`. |
+| `yaml` | ✅ | YAML translation files (`parse_yaml_text`, `.yaml`/`.yml` directory loading). Needs `Lib/yaml`. |
+| `sysinfo` | ✅ | System language auto-detection (`detect_lang`, `system_language`). Needs `Lib/sysinfo`. |
+
+Without a format feature its files are skipped by the directory loader (`.tr`/`.csv`/`.tsv` always work). Without `sysinfo`, `load_bundle` falls back to the explicit `fallback` language.
+
+```bash
+# Full build (default)
+alya install
+alya test
+
+# Slim build (.tr/.csv/.tsv only, explicit language)
+alya install --no-default-features
+alya test --no-default-features
+
+# Any subset, e.g. JSON + auto-detect only
+alya test --no-default-features --features json,sysinfo
+```
+
 ---
 
 ## 🚀 Quick Start

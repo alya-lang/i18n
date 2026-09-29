@@ -7,10 +7,12 @@
 import "std/str"
 import "./types.alya"
 import "./tr_parser.alya"
+@cfg(feature = "json")
 import "./json_loader.alya"
 import "./plural.alya"
 import "./format.alya"
 import "./number.alya"
+@cfg(feature = "sysinfo")
 import "./detect.alya"
 import "./loader.alya"
 
@@ -31,8 +33,13 @@ import "./loader.alya"
 ## Populated `I18nBundle`.
 pub function load_bundle(dir: string, lang: string = "", fallback: string = "en") -> I18nBundle
     let use_lang = lang
+    @cfg(feature = "sysinfo")
     if len(use_lang) == 0
         use_lang = detect_lang(fallback)
+    end
+    @cfg(not(feature = "sysinfo"))
+    if len(use_lang) == 0
+        use_lang = fallback
     end
     return I18nBundle {
         messages: load_dir(dir),
@@ -42,6 +49,9 @@ pub function load_bundle(dir: string, lang: string = "", fallback: string = "en"
 end
 
 ## Detects the system language tag, falling back to default_lang.
+##
+## Requires the `sysinfo` feature (default-on).
+@cfg(feature = "sysinfo")
 pub function system_language(default_lang: string = "en") -> string
     return detect_lang(default_lang)
 end

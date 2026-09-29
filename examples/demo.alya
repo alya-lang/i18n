@@ -52,6 +52,7 @@ function main()
     say ""
 
     say "--- 4. System language ---"
+    @cfg(feature = "sysinfo")
     say "system:  " + pkg::system_language("en")
     say ""
 

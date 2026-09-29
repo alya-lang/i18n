@@ -13,8 +13,11 @@
 import "std/fs"
 import "std/str"
 import "./tr_parser.alya"
+@cfg(feature = "json")
 import "./json_loader.alya"
+@cfg(feature = "yaml")
 import "./yaml_loader.alya"
+@cfg(feature = "toml")
 import "./toml_loader.alya"
 import "./csv_loader.alya"
 
@@ -24,15 +27,19 @@ function file_kind(name: string) -> string
     if ends_with(name, ".tr") == 1 or ends_with(name, ".TR") == 1
         return "tr"
     end
+    @cfg(feature = "json")
     if ends_with(name, ".json") == 1 or ends_with(name, ".JSON") == 1
         return "json"
     end
+    @cfg(feature = "yaml")
     if ends_with(name, ".yaml") == 1 or ends_with(name, ".YAML") == 1
         return "yaml"
     end
+    @cfg(feature = "yaml")
     if ends_with(name, ".yml") == 1 or ends_with(name, ".YML") == 1
         return "yaml"
     end
+    @cfg(feature = "toml")
     if ends_with(name, ".toml") == 1 or ends_with(name, ".TOML") == 1
         return "toml"
     end
@@ -59,12 +66,15 @@ function parse_kind_text(kind: string, text) -> map
     if kind == "tr"
         return parse_tr_text(text)
     end
+    @cfg(feature = "json")
     if kind == "json"
         return parse_json_text(text)
     end
+    @cfg(feature = "yaml")
     if kind == "yaml"
         return parse_yaml_text(text)
     end
+    @cfg(feature = "toml")
     if kind == "toml"
         return parse_toml_text(text)
     end
