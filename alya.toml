@@ -16,13 +16,6 @@ toml = { git = "https://github.com/alya-lang/toml", tag = "v0.2.0", optional = t
 yaml = { git = "https://github.com/alya-lang/yaml", tag = "v0.1.0", optional = true }
 sysinfo = { git = "https://github.com/alya-lang/sysinfo", tag = "v0.2.0", optional = true }
 
-[features]
-default = ["json", "toml", "yaml", "sysinfo"]
-json = ["json"]
-toml = ["toml"]
-yaml = ["yaml"]
-sysinfo = ["sysinfo"]
-
 # [lint]
 # disabled_rules = []
 # exclude = []
@@ -35,3 +28,10 @@ sysinfo = ["sysinfo"]
 
 # [bench]
 # exclude = []
+
+[features]
+default = ["json", "toml", "yaml", "sysinfo"]
+json = ["json"]
+toml = ["toml"]
+yaml = ["yaml"]
+sysinfo = ["sysinfo"]
