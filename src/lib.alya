@@ -103,13 +103,13 @@ pub function vars_with_count(vars, n: int)
             out[k] = vars[k]
         end
     end
-    let has_count = 0
+    let has_count = false
     if vars is not null
         if "count" in vars
-            has_count = 1
+            has_count = true
         end
     end
-    if has_count == 0
+    if has_count == false
         out["count"] = str(n)
     end
     return out
@@ -248,11 +248,11 @@ pub function missing_keys(bundle, lang: string) -> array
             if k[0..pos] == fb
                 let key = k[pos + 1..len(k)]
                 let want = lang + "\n" + key
-                let present = 0
+                let present = false
                 if want in bundle.messages
-                    present = 1
+                    present = true
                 end
-                if present == 0
+                if present == false
                     out.push(key)
                 end
             end

@@ -53,15 +53,15 @@ function arabic_digits(s: string) -> string
     while i < len(s)
         let ch = s[i..i + 1]
         let d: int = 0
-        let done = 0
+        let done = false
         while d < 10
             if "0123456789"[d..d + 1] == ch
                 out += glyphs[d]
-                done = 1
+                done = true
             end
             d += 1
         end
-        if done == 0
+        if done == false
             out += ch
         end
         i += 1

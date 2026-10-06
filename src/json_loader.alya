@@ -26,7 +26,7 @@ pub function parse_json_text(text) -> map
     if text is null or len(text) == 0
         return out
     end
-    if starts_with(trim(text), "{") == 0
+    if starts_with(trim(text), "{") == false
         return out
     end
     let data = json_pkg::parse(text)

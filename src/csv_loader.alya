@@ -17,25 +17,25 @@ import "std/str"
 function split_csv_line(line: string, delim: string) -> array
     let fields = []
     let cur = ""
-    let in_quotes = 0
+    let in_quotes = false
     let i = 0
     let n = len(line)
     while i < n
         let ch = char_at(line, i)
-        if in_quotes == 1
+        if in_quotes == true
             if ch == "\""
                 if i + 1 < n and char_at(line, i + 1) == "\""
                     cur = cur + "\""
                     i += 1
                 else
-                    in_quotes = 0
+                    in_quotes = false
                 end
             else
                 cur = cur + ch
             end
         else
             if ch == "\"" and len(cur) == 0
-                in_quotes = 1
+                in_quotes = true
             elif ch == delim
                 fields.push(cur)
                 cur = ""
@@ -57,14 +57,14 @@ function parse_delimited_text(text, delim: string) -> map
     end
     let norm = replace(text, "\r\n", "\n")
     let lines = split(norm, "\n")
-    let started = 0
+    let started = false
     for line in lines
         if len(line) == 0
             continue
         end
         let fields = split_csv_line(line, delim)
-        if started == 0
-            started = 1
+        if started == false
+            started = true
             if len(fields) >= 2
                 if trim(fields[0]) == "key"
                     if trim(fields[1]) == "value"

@@ -24,29 +24,29 @@ import "./csv_loader.alya"
 ## Maps a file name to its loader kind ("tr", "json", "yaml", "toml",
 ## "csv", "tsv", or "" when unsupported).
 function file_kind(name: string) -> string
-    if ends_with(name, ".tr") == 1 or ends_with(name, ".TR") == 1
+    if ends_with(name, ".tr") == true or ends_with(name, ".TR") == true
         return "tr"
     end
     @cfg(feature = "json")
-    if ends_with(name, ".json") == 1 or ends_with(name, ".JSON") == 1
+    if ends_with(name, ".json") == true or ends_with(name, ".JSON") == true
         return "json"
     end
     @cfg(feature = "yaml")
-    if ends_with(name, ".yaml") == 1 or ends_with(name, ".YAML") == 1
+    if ends_with(name, ".yaml") == true or ends_with(name, ".YAML") == true
         return "yaml"
     end
     @cfg(feature = "yaml")
-    if ends_with(name, ".yml") == 1 or ends_with(name, ".YML") == 1
+    if ends_with(name, ".yml") == true or ends_with(name, ".YML") == true
         return "yaml"
     end
     @cfg(feature = "toml")
-    if ends_with(name, ".toml") == 1 or ends_with(name, ".TOML") == 1
+    if ends_with(name, ".toml") == true or ends_with(name, ".TOML") == true
         return "toml"
     end
-    if ends_with(name, ".csv") == 1 or ends_with(name, ".CSV") == 1
+    if ends_with(name, ".csv") == true or ends_with(name, ".CSV") == true
         return "csv"
     end
-    if ends_with(name, ".tsv") == 1 or ends_with(name, ".TSV") == 1
+    if ends_with(name, ".tsv") == true or ends_with(name, ".TSV") == true
         return "tsv"
     end
     return ""
@@ -101,7 +101,7 @@ function load_subdir(all, dir: string, lang: string, kind: string)
     let entries = fs_list_dir(dir)
     for e in entries
         let full = dir + "/" + e
-        if fs_is_dir(full) == 1
+        if fs_is_dir(full) == true
             continue
         end
         if file_kind(e) != kind
@@ -120,7 +120,7 @@ function load_kind(all, dir: string, ns: string, kind: string)
     let entries = fs_list_dir(dir)
     for e in entries
         let full = dir + "/" + e
-        if fs_is_dir(full) == 1
+        if fs_is_dir(full) == true
             if len(ns) == 0
                 load_subdir(all, full, e, kind)
             end

@@ -9,10 +9,10 @@
 function lang_in_list(s: string, list) -> int
     for x in list
         if x == s
-            return 1
+            return true
         end
     end
-    return 0
+    return false
 end
 
 ## Returns the base language of a tag ("pt-BR" -> "pt", "en" -> "en").
@@ -43,7 +43,7 @@ pub function plural_category(lang: string, n: int) -> string
         return "other"
     end
     let base = base_lang(lang)
-    if lang_in_list(base, ["ru", "uk", "be", "hr", "sr", "bs"]) == 1
+    if lang_in_list(base, ["ru", "uk", "be", "hr", "sr", "bs"]) == true
         let r10 = n - (n / 10) * 10
         let r100 = n - (n / 100) * 100
         if r10 == 1 and r100 != 11
@@ -93,13 +93,13 @@ pub function plural_category(lang: string, n: int) -> string
         end
         return "other"
     end
-    if lang_in_list(base, ["fr", "ak", "am", "ln", "mg", "wa"]) == 1
+    if lang_in_list(base, ["fr", "ak", "am", "ln", "mg", "wa"]) == true
         if n == 0 or n == 1
             return "one"
         end
         return "other"
     end
-    if lang_in_list(base, ["ja", "zh", "yue", "ko", "th", "vi", "id", "ms", "tr", "az", "lo", "km", "my"]) == 1
+    if lang_in_list(base, ["ja", "zh", "yue", "ko", "th", "vi", "id", "ms", "tr", "az", "lo", "km", "my"]) == true
         return "other"
     end
     if n == 1
@@ -117,7 +117,7 @@ end
 ## Form key array (e.g. `["one", "few", "many"]` for Russian).
 pub function form_order(lang: string) -> array
     let base = base_lang(lang)
-    if lang_in_list(base, ["ru", "uk", "be", "hr", "sr", "bs", "pl"]) == 1
+    if lang_in_list(base, ["ru", "uk", "be", "hr", "sr", "bs", "pl"]) == true
         return ["one", "few", "many"]
     end
     if base == "cs" or base == "sk"

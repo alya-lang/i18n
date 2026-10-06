@@ -51,15 +51,15 @@ pub function parse_toml_text(text) -> map
     let cur = ""
     for line in lines(text)
         let t = trim(line)
-        if len(t) == 0 or starts_with(t, "#") == 1
+        if len(t) == 0 or starts_with(t, "#") == true
             continue
         end
-        if starts_with(t, "[[") == 1
+        if starts_with(t, "[[") == true
             # Array tables hold non-string values: skip wholesale.
             cur = "@skip"
             continue
         end
-        if starts_with(t, "[") == 1 and ends_with(t, "]") == 1
+        if starts_with(t, "[") == true and ends_with(t, "]") == true
             let inner = trim(t[1..len(t) - 1])
             cur = unquote_toml(inner) + "."
             bodies[cur] = ""
@@ -74,18 +74,18 @@ pub function parse_toml_text(text) -> map
         end
         let raw_key = trim(t[0..eq])
         let raw_val = trim(t[eq + 1..len(t)])
-        if starts_with(raw_val, "\"") == 0 and starts_with(raw_val, "'") == 0
+        if starts_with(raw_val, "\"") == false and starts_with(raw_val, "'") == false
             continue
         end
         let key = unquote_toml(raw_key)
         bodies[cur] = bodies[cur] + key + " = " + raw_val + "\n"
-        let seen = 0
+        let seen = false
         for have in order
             if have == cur
-                seen = 1
+                seen = true
             end
         end
-        if seen == 0
+        if seen == false
             order.push(cur)
         end
     end

@@ -40,29 +40,29 @@ pub function parse_tr_text(text) -> map
     let lines = split(norm, "\n")
     let key = ""
     let buf = ""
-    let has_key = 0
+    let has_key = false
     for line in lines
         if line == "-----"
-            if has_key == 1 and len(key) > 0
+            if has_key == true and len(key) > 0
                 out[key] = rstrip_newlines(buf)
             end
             key = ""
             buf = ""
-            has_key = 0
+            has_key = false
             continue
         end
-        if has_key == 0
+        if has_key == false
             let k = trim(line)
             if len(k) == 0
                 continue
             end
             key = k
-            has_key = 1
+            has_key = true
         else
             buf = buf + line + "\n"
         end
     end
-    if has_key == 1 and len(key) > 0
+    if has_key == true and len(key) > 0
         out[key] = rstrip_newlines(buf)
     end
     return out

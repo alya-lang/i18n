@@ -89,13 +89,13 @@ pub function I18nBundle.langs(self: I18nBundle) -> array
         if sep > 0
             l = ck[..sep]
         end
-        let found = 0
+        let found = false
         for x in out
             if x == l
-                found = 1
+                found = true
             end
         end
-        if found == 0
+        if found == false
             out.push(l)
         end
     end
