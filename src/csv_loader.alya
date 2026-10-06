@@ -25,13 +25,13 @@ function split_csv_line(line: string, delim: string) -> array
         if in_quotes == true
             if ch == "\""
                 if i + 1 < n and char_at(line, i + 1) == "\""
-                    cur = cur + "\""
+                    cur += "\""
                     i += 1
                 else
                     in_quotes = false
                 end
             else
-                cur = cur + ch
+                cur += ch
             end
         else
             if ch == "\"" and len(cur) == 0
@@ -40,7 +40,7 @@ function split_csv_line(line: string, delim: string) -> array
                 fields.push(cur)
                 cur = ""
             else
-                cur = cur + ch
+                cur += ch
             end
         end
         i += 1

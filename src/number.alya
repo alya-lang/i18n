@@ -427,7 +427,7 @@ function weekday_of_ymd(year: int, month: int, day: int) -> int
     let k: int = y % 100
     let j: int = (y - k) / 100
     let h: int = q + (13 * (m + 1)) / 5 + k + k / 4 + j / 4 + 5 * j
-    h = h % 7
+    h %= 7
     return (h + 6) % 7
 end
 

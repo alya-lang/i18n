@@ -59,7 +59,7 @@ pub function parse_tr_text(text) -> map
             key = k
             has_key = true
         else
-            buf = buf + line + "\n"
+            buf += line + "\n"
         end
     end
     if has_key == true and len(key) > 0
