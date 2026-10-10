@@ -110,13 +110,13 @@ function test_interpolate(r)
     let pv = map()
     pv["name"] = "Ali"
     runner_assert_str_eq(r, pkg::interpolate(ptmpl, pv), "Hi Ali", "probe-first interpolate")
-    let tmpl = ""f"Hello, {{name}}! You have {{count}} messages."""
+    let tmpl = """Hello, {{name}}! You have {{count}} messages."""
     let v = map()
     v["name"] = "Ali"
     v["count"] = "3"
     runner_assert_str_eq(r, pkg::interpolate(tmpl, v), "Hello, Ali! You have 3 messages.", "interpolate replaces placeholders")
     runner_assert_str_eq(r, pkg::interpolate("plain", null), "plain", "interpolate null vars passes through")
-    let tmpl2 = ""f"Hi {{who}}"""
+    let tmpl2 = """Hi {{who}}"""
     let v2 = map()
     v2["name"] = "Ali"
     runner_assert_str_eq(r, pkg::interpolate(tmpl2, v2), tmpl2, "interpolate leaves unknown keys")
@@ -127,7 +127,7 @@ end
 function test_inline_bundle(r)
     let enm = map()
     enm["hello"] = "Hi"
-    let goods_tpl = ""f"one item|{{count}} items"""
+    let goods_tpl = """one item|{{count}} items"""
     enm["goods"] = goods_tpl
     let b = pkg::bundle_new("en", "en")
     let b = b.put_lang("en", enm)

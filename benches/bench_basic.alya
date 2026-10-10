@@ -9,7 +9,7 @@ function main()
 
     let enm = map()
     enm["hello"] = "Hi"
-    let goods_tpl = ""f"one item|{{count}} items"""
+    let goods_tpl = """one item|{{count}} items"""
     enm["goods"] = goods_tpl
     let b = pkg::bundle_new("en", "en")
     let b = b.put_lang("en", enm)
