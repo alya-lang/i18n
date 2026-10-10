@@ -4,9 +4,7 @@
 import "std/test"
 import "../src/lib.alya" as pkg
 
-function main()
-    let runner = bench_runner("i18n Micro-Benchmarks")
-
+function bench_bundle()
     let enm = map()
     enm["hello"] = "Hi"
     let goods_tpl = """one item|{{count}} items"""
@@ -15,7 +13,13 @@ function main()
     let b = b.put_lang("en", enm)
     let v = map()
     v["name"] = "Ali"
+    return b
+end
 
+function bench_core(runner)
+    let b = bench_bundle()
+    let v = map()
+    v["name"] = "Ali"
     # Bench 1: t() lookup — 100k iterations
     bench_start(runner, 100000)
     let i = 0
@@ -71,9 +75,12 @@ function main()
         c += 1
     end
     bench_stop(runner, "parse_csv_text() 20k calls")
+end
 
-    # Bench 7: parse_yaml_text() — 20k iterations
+@cfg(feature = "yaml")
+function bench_yaml(runner)
     let yaml_sample = "hello: Hi\nbye: Bye\n"
+    # Bench 7: parse_yaml_text() — 20k iterations
     bench_start(runner, 20000)
     let y = 0
     while y < 20000
@@ -81,6 +88,17 @@ function main()
         y += 1
     end
     bench_stop(runner, "parse_yaml_text() 20k calls")
+end
+
+@cfg(not(feature = "yaml"))
+function bench_yaml(runner)
+end
+
+function main()
+    let runner = bench_runner("i18n Micro-Benchmarks")
+
+    bench_core(runner)
+    bench_yaml(runner)
 
     bench_summary(runner)
 end
